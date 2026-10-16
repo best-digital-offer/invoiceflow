@@ -227,7 +227,7 @@ export class InvoiceExtractionService {
     const dueDate = dueDateMatches ? normalizeDate(dueDateMatches[1]) : '';
 
     // 4. Tax ID / VAT
-    const vatMatch = text.match(/\b(?:vat\s*no\.?|tax\s*id|ein|steuernummer|ust-idnr\.?)\s*[:.\s]?\s*([A-Z0-9\-_]{6,20})/i);
+    const vatMatch = text.match(/\bGSTIN\s*:\s*([A-Z0-9-]{8,25})/i) || text.match(/\b(?:vat\s*no\.?|tax\s*id|ein|steuernummer|ust-idnr\.?)\s*[:.\s]?\s*([A-Z0-9\-_]{6,20})/i);
     const supplierTaxId = vatMatch ? vatMatch[1].trim() : '';
 
     // 5. PO Number
@@ -248,16 +248,16 @@ export class InvoiceExtractionService {
     };
 
     const totalAmount = findAmount([
-      /(?:total\s*amount|total\s*due|balance\s*due|gesamtbetrag|amount\s*payable|grand\s*total)\s*[:.\s]?\s*[$€£¥]?\s*([\d,]+\.\d{2})/i,
-      /\btotal\b\s*[:.\s]?\s*[$€£¥]?\s*([\d,]+\.\d{2})/i,
+      /(?:total\s*amount|total\s*due|balance\s*due|gesamtbetrag|amount\s*payable|grand\s*total)\s*[:.\s]?\s*[^\d\n]*([\d,]+\.\d{2})/i,
+      /\btotal\b\s*[:.\s]?\s*[^\d\n]*([\d,]+\.\d{2})/i,
     ]) || 0;
 
     const subtotal = findAmount([
-      /(?:subtotal|sub-total|zwischensumme|net\s*amount)\s*[:.\s]?\s*[$€£¥]?\s*([\d,]+\.\d{2})/i,
+      /(?:subtotal|sub-total|zwischensumme|net\s*amount)\s*[:.\s]?\s*[^\d\n]*([\d,]+\.\d{2})/i,
     ]) || 0;
 
     const taxAmount = /\b(?:CGST|SGST|IGST)\b/i.test(text)
-      ? (findAmount([/CGST\s*\([^)]*\)\s*[$€£¥₹]?\s*([\d,]+\.\d{2})/i]) + findAmount([/SGST\s*\([^)]*\)\s*[$€£¥₹]?\s*([\d,]+\.\d{2})/i]) + findAmount([/IGST\s*\([^)]*\)\s*[$€£¥₹]?\s*([\d,]+\.\d{2})/i]))
+      ? (findAmount([/CGST\s*\([^)]*\)[^\d\n]*([\d,]+\.\d{2})/i]) + findAmount([/SGST\s*\([^)]*\)[^\d\n]*([\d,]+\.\d{2})/i]) + findAmount([/IGST\s*\([^)]*\)[^\d\n]*([\d,]+\.\d{2})/i]))
       : (findAmount([/(?:total\s+tax|tax\s+amount|tax|vat|mwst|sales\s*tax|gst)\s*[:.\s]?\s*[$€£¥₹]?\s*([\d,]+\.\d{2})/i]) || 0);
     const shippingAmount = findAmount([
       /(?:shipping|freight|handling|delivery|porto)\s*[:.\s]?\s*[$€£¥]?\s*([\d,]+\.\d{2})/i,
