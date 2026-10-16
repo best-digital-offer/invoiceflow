@@ -131,7 +131,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan }) => {
                 </li>
                 <li className="flex items-center">
                   <Check className="w-4 h-4 text-emerald-600 mr-2 shrink-0" />
-                  <span>Scanned PDF & photo OCR support</span>
+                  <span>Selectable-text PDF extraction</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="w-4 h-4 text-emerald-600 mr-2 shrink-0" />
@@ -143,7 +143,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan }) => {
                 </li>
                 <li className="flex items-center">
                   <Check className="w-4 h-4 text-emerald-600 mr-2 shrink-0" />
-                  <span>open-invoice-engine API connector</span>
+                  <span>Built-in Vercel extraction API</span>
                 </li>
               </ul>
             </div>
@@ -237,7 +237,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan }) => {
             <div className="bg-white p-4 rounded-lg border border-slate-200 space-y-1">
               <h4 className="font-bold text-slate-800">Are there per-page or LLM token fees?</h4>
               <p className="text-slate-600 leading-relaxed">
-                No. The core engine runs deterministic rule algorithms and local OCR, eliminating recurring OpenAI or proprietary AI model costs.
+                No. The current extraction path reads selectable PDF text and applies deterministic parsing and validation rules. OCR for scanned PDFs is not enabled yet, and the current path does not require a paid AI model.
               </p>
             </div>
 
