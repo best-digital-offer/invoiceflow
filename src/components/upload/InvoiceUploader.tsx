@@ -174,6 +174,12 @@ export const InvoiceUploader: React.FC<InvoiceUploaderProps> = ({
 
         // Save into isolated database
         const saved = storageService.saveInvoice(newInvoice);
+        storageService.recordUsage({
+          operation: 'pdf_extraction',
+          status: extraction.warnings.length > 0 ? 'warning' : 'success',
+          itemCount: 1,
+          details: `Extracted ${task.file.name}; ${extraction.warnings.length} review warning(s).`,
+        });
         completedInvoices.push(saved);
 
         updateTask(task.id, {
