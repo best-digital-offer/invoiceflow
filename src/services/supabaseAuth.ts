@@ -166,6 +166,18 @@ export const supabaseAuth = {
     });
   },
 
+  async resendConfirmationEmail(email: string): Promise<void> {
+    config();
+    await authRequest('/resend', {
+      method: 'POST',
+      body: JSON.stringify({
+        type: 'signup',
+        email: email.trim(),
+        options: { emailRedirectTo: window.location.origin },
+      }),
+    });
+  },
+
   async updatePassword(password: string): Promise<User> {
     const session = readSession();
     if (!session?.access_token) throw new Error('The password reset session is missing or expired. Request a new reset email.');
