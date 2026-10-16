@@ -1,4 +1,4 @@
-import type { Invoice, ReconciliationRun, UsageRecord, User } from '../types';
+import type { Invoice, ReconciliationRun, UsageRecord, User, UserPreferences } from '../types';
 import { supabaseAuth } from './supabaseAuth';
 
 const BUCKET = 'invoice-documents';
@@ -40,7 +40,57 @@ function withoutEmbeddedPdf(invoice: Invoice): Invoice {
   return copy;
 }
 
+export const DEFAULT_USER_PREFERENCES: UserPreferences = {
+  defaultCurrency: 'USD',
+  taxCountry: 'US',
+  taxRegion: '',
+  taxSystem: 'sales_tax',
+  taxLabel: 'Sales Tax',
+  defaultTaxRate: 0,
+};
+
 export const supabaseData = {
+  async fetchUserPreferences(userId: string): Promise<UserPreferences | null> {
+    if (!isSupabaseUserId(userId)) return null;
+    const rows = await request<Array<{
+      default_currency: UserPreferences['defaultCurrency'];
+      tax_country: string;
+      tax_region: string;
+      tax_system: UserPreferences['taxSystem'];
+      tax_label: string;
+      default_tax_rate: number | string;
+    }>>(
+      `/rest/v1/user_preferences?select=default_currency,tax_country,tax_region,tax_system,tax_label,default_tax_rate&user_id=eq.${encodeURIComponent(userId)}&limit=1`,
+    );
+    const row = rows?.[0];
+    if (!row) return null;
+    return {
+      defaultCurrency: row.default_currency,
+      taxCountry: row.tax_country,
+      taxRegion: row.tax_region ?? '',
+      taxSystem: row.tax_system,
+      taxLabel: row.tax_label,
+      defaultTaxRate: Number(row.default_tax_rate) || 0,
+    };
+  },
+
+  async saveUserPreferences(userId: string, preferences: UserPreferences): Promise<void> {
+    if (!isSupabaseUserId(userId)) return;
+    await request('/rest/v1/user_preferences?on_conflict=user_id', {
+      method: 'POST',
+      headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({
+        user_id: userId,
+        default_currency: preferences.defaultCurrency,
+        tax_country: preferences.taxCountry,
+        tax_region: preferences.taxRegion,
+        tax_system: preferences.taxSystem,
+        tax_label: preferences.taxLabel,
+        default_tax_rate: preferences.defaultTaxRate,
+        updated_at: new Date().toISOString(),
+      }),
+    });
+  },
   async fetchProfile(userId: string): Promise<Partial<User> | null> {
     if (!isSupabaseUserId(userId)) return null;
     const rows = await request<Array<{
