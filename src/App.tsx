@@ -21,7 +21,8 @@ import {
   TermsOfServicePage, 
   UsageAuditLogView 
 } from './components/public/PublicStaticPages';
-import { storageService } from './services/storage';
+import { storageService, DEMO_USER } from './services/storage';
+import { supabaseAuth } from './services/supabaseAuth';
 import { BackendConfig, Invoice, User } from './types';
 
 export default function App() {
@@ -42,14 +43,38 @@ export default function App() {
   const [isApiConfigOpen, setIsApiConfigOpen] = useState<boolean>(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
 
-  // Subscribe to storage changes
+  // Restore real Supabase sessions and keep local UI state in sync with storage.
   useEffect(() => {
+    let mounted = true;
     const unsubscribe = storageService.subscribe(() => {
       setCurrentUser(storageService.getCurrentUser());
       setBackendConfig(storageService.getBackendConfig());
       setInvoices(storageService.getInvoices());
     });
-    return unsubscribe;
+
+    const isRecovery = supabaseAuth.consumePasswordRecoveryRedirect();
+    if (isRecovery) {
+      setAuthModalMode('update_password');
+      setIsAuthModalOpen(true);
+    }
+
+    void supabaseAuth.restoreSession().then(user => {
+      if (!mounted) return;
+      if (user) {
+        storageService.setCurrentUser(user);
+      } else {
+        const storedUser = storageService.getCurrentUser();
+        if (storedUser && storedUser.id !== DEMO_USER.id) {
+          storageService.setCurrentUser(null);
+          setCurrentView('landing');
+        }
+      }
+    });
+
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
   }, []);
 
   // Handle route switching
@@ -74,6 +99,7 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    void supabaseAuth.signOut();
     storageService.setCurrentUser(null);
     setCurrentUser(null);
     setCurrentView('landing');
