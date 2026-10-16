@@ -290,7 +290,7 @@ export class InvoiceExtractionService {
       invoiceDate,
       dueDate,
       purchaseOrderNumber,
-      customerName: '',
+      customerName: (() => { const billTo = lines.findIndex(line => /^BILL\\s+TO$/i.test(line)); return billTo >= 0 ? (lines.slice(billTo + 1).find(line => !/^(payment terms|po number|gstin:|currency:)/i.test(line)) || '') : ''; })(),
       paymentTerms: '',
       currency,
       subtotal,
