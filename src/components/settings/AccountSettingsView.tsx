@@ -11,7 +11,8 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import { User } from '../../types';
-import { storageService } from '../../services/storage';
+import { storageService, DEMO_USER } from '../../services/storage';
+import { supabaseAuth } from '../../services/supabaseAuth';
 
 interface AccountSettingsViewProps {
   currentUser: User;
@@ -36,11 +37,14 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
     setTimeout(() => setNotice(null), 3000);
   };
 
-  const handleVerifyEmail = () => {
-    storageService.verifyCurrentUserEmail();
-    onUpdateUser({ ...currentUser, isEmailVerified: true });
-    setNotice('Email address marked as verified.');
-    setTimeout(() => setNotice(null), 3000);
+  const handleVerifyEmail = async () => {
+    try {
+      await supabaseAuth.resendConfirmationEmail(currentUser.email);
+      setNotice('A new confirmation email was requested. Check your inbox and spam folder.');
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Could not request a confirmation email. Please try again.');
+    }
+    setTimeout(() => setNotice(null), 5000);
   };
 
   const handleResetData = () => {
@@ -87,7 +91,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
             <div>
               <span className="font-bold">Email Verification Pending</span>
               <p className="text-[11px] text-amber-700 mt-0.5">
-                We sent a confirmation link to {currentUser.email}. Confirm to enable automated reconciliation webhooks.
+                Request a new confirmation link for {currentUser.email} to complete email verification.
               </p>
             </div>
           </div>
@@ -172,29 +176,30 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
               {currentUser.plan === 'monthly' ? '$10/month Billing' : currentUser.plan === 'annual' ? '$75/year Billing' : 'Free Trial Tier'}
             </p>
             <p className="text-slate-500 mt-0.5">
-              Deterministic invoice extraction, line item parser, and spreadsheet reconciliation included.
+              Selectable-text PDF extraction, invoice validation, and CSV reconciliation.
             </p>
           </div>
         </div>
       </div>
 
-      {/* Database Reset Action */}
-      <div className="bg-white p-6 rounded-lg border border-slate-200 space-y-3 shadow-2xs">
-        <h3 className="font-bold text-sm text-slate-900">
-          Sandbox Data Management
-        </h3>
-        <p className="text-slate-500 text-xs">
-          Reset your user account database to the standard 5 test invoices (including foreign currencies and deliberate math discrepancies for auditing).
-        </p>
-        <button
-          type="button"
-          onClick={handleResetData}
-          className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded font-semibold text-xs transition-colors flex items-center space-x-1.5"
-        >
-          <RotateCcw className="w-3.5 h-3.5" />
-          <span>Reset to Standard 5 Test Invoices</span>
-        </button>
-      </div>
+      {currentUser.id === DEMO_USER.id && (
+        <div className="bg-white p-6 rounded-lg border border-slate-200 space-y-3 shadow-2xs">
+          <h3 className="font-bold text-sm text-slate-900">
+            Sandbox Data Management
+          </h3>
+          <p className="text-slate-500 text-xs">
+            Reset the demo workspace to its standard 5 test invoices, including deliberate math discrepancies for validation testing.
+          </p>
+          <button
+            type="button"
+            onClick={handleResetData}
+            className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded font-semibold text-xs transition-colors flex items-center space-x-1.5"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Reset Demo Invoices</span>
+          </button>
+        </div>
+      )}
 
     </div>
   );
