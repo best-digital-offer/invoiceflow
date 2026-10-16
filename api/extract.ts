@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
+import pdfParse from 'pdf-parse';
 
 export const config = {
   api: {
@@ -53,65 +53,44 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       return sendJson(res, 400, { detail: 'The uploaded file is not a valid PDF.' });
     }
 
-    const loadingTask = getDocument({
-      data: new Uint8Array(buffer),
-      useSystemFonts: true,
-      isEvalSupported: false,
-      disableFontFace: true,
-    });
-    const pdf = await loadingTask.promise;
-
-    try {
-      if (pdf.numPages > MAX_PDF_PAGES) {
-        return sendJson(res, 413, { detail: `PDF has ${pdf.numPages} pages; the maximum is ${MAX_PDF_PAGES}.` });
-      }
-
-      const pages: Array<{ page: number; text: string; extraction_method: string }> = [];
-      const pageTexts: string[] = [];
-      for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
-        const page = await pdf.getPage(pageNumber);
-        const textContent = await page.getTextContent();
-        const pageText = textContent.items
-          .map((item) => {
-            if (!('str' in item) || typeof item.str !== 'string' || !item.str) return '';
-            return item.hasEOL ? item.str + '\n' : item.str + ' ';
-          })
-          .join('')
-          .replace(/[ \t]+/g, ' ')
-          .replace(/ *\n */g, '\n')
-          .trim();
-        pages.push({
-          page: pageNumber,
-          text: pageText,
-          extraction_method: pageText ? 'pdfjs_text' : 'no_text_layer',
-        });
-        pageTexts.push(pageText);
-        page.cleanup();
-      }
-
-      const combinedText = pageTexts.filter(Boolean).join('\n\n').trim();
-      const pagesRequiringOcr = pages.filter((page) => !page.text).map((page) => page.page);
-      if (!combinedText) {
-        return sendJson(res, 422, {
-          detail: 'No selectable text was found. This may be a scanned PDF; browser-side OCR support is not enabled yet.',
-          page_count: pdf.numPages,
-          ocr_required: true,
-          pages_requiring_ocr: pagesRequiringOcr,
-        });
-      }
-
-      return sendJson(res, 200, {
-        page_count: pdf.numPages,
-        pages,
-        combined_text: combinedText,
-        ocr_used: false,
-        ocr_required: pagesRequiringOcr.length > 0,
-        pages_requiring_ocr: pagesRequiringOcr,
-        extraction_method: 'pdfjs_text',
-      });
-    } finally {
-      await pdf.destroy();
+    const parsed = await pdfParse(buffer, { max: MAX_PDF_PAGES });
+    const pageCount = Number(parsed.numpages) || 0;
+    if (pageCount > MAX_PDF_PAGES) {
+      return sendJson(res, 413, { detail: `PDF has ${pageCount} pages; the maximum is ${MAX_PDF_PAGES}.` });
     }
+
+    const combinedText = String(parsed.text || '')
+      .replace(/\r\n?/g, '\n')
+      .replace(/[ \t]+\n/g, '\n')
+      .replace(/\n[ \t]+/g, '\n')
+      .trim();
+
+    if (!combinedText) {
+      return sendJson(res, 422, {
+        detail: 'No selectable text was found. This may be a scanned PDF; OCR support is not enabled yet.',
+        page_count: pageCount,
+        ocr_required: true,
+        pages_requiring_ocr: Array.from({ length: pageCount }, (_, index) => index + 1),
+      });
+    }
+
+    // pdf-parse extracts all pages in one pass. Keep the combined text intact rather
+    // than inventing page boundaries that the parser did not return.
+    const pages = [{
+      page: 1,
+      text: combinedText,
+      extraction_method: 'pdf_parse_text',
+    }];
+
+    return sendJson(res, 200, {
+      page_count: pageCount,
+      pages,
+      combined_text: combinedText,
+      ocr_used: false,
+      ocr_required: false,
+      pages_requiring_ocr: [],
+      extraction_method: 'pdf_parse_text',
+    });
   } catch (error) {
     const statusCode = (error as Error & { statusCode?: number }).statusCode;
     const message = error instanceof Error ? error.message : 'PDF extraction failed.';
