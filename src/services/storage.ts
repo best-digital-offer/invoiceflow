@@ -595,6 +595,7 @@ class StorageService {
     const current = this.getBackendConfig();
     const updated = { ...current, ...config };
     localStorage.setItem(STORAGE_KEYS.BACKEND_CONFIG, JSON.stringify(updated));
+    localStorage.setItem('invoiceflow_api_default_migrated', 'true');
     this.notify();
     return updated;
   }
