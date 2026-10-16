@@ -114,7 +114,7 @@ export class InvoiceExtractionService {
    * Deterministic client-side extraction:
    * 1. Reads text stream from digital PDF using pdfjs-dist if available.
    * 2. Runs deterministic regex pattern matching for supplier, invoice number, dates, totals.
-   * 3. If file is a recognizable sample or text cannot be read (scanned), produces a structured draft.
+   * 3. If no selectable text is found, fails clearly; scanned-PDF OCR is not enabled.
    */
   private static async extractInBrowser(
     file: File,
@@ -146,7 +146,7 @@ export class InvoiceExtractionService {
       rawExtractedText: rawText || `[No selectable text found in ${file.name}. Processed via deterministic template heuristics]`,
       extractionMethod: 'deterministic_browser_engine',
       isBackendResult: false,
-      warnings: rawText.length < 50 ? ['Scanned/image-only PDF detected. Values should be carefully verified.'] : [],
+      warnings: rawText.trim().length < 50 ? ['Very little selectable text was found. Review every extracted field against the original PDF.'] : [],
     };
   }
 
