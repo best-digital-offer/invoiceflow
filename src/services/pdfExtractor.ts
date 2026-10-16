@@ -45,7 +45,7 @@ export class InvoiceExtractionService {
 
   /**
    * Calls open-invoice-engine FastAPI backend according to documented contract:
-   * POST /api/v1/extract
+   * POST /extract
    * Content-Type: multipart/form-data; file=@filename.pdf
    */
   private static async callBackendApi(
@@ -98,6 +98,9 @@ export class InvoiceExtractionService {
     const warnings: string[] = [];
     if (data.ocr_required || (Array.isArray(data.pages_requiring_ocr) && data.pages_requiring_ocr.length > 0)) {
       warnings.push('One or more pages may still require OCR. Review extracted values against the PDF.');
+    }
+    if (!/(?:\\bUSD\\b|\\bEUR\\b|\\bGBP\\b|\\bCAD\\b|\\bAUD\\b|\\bJPY\\b|\\bCHF\\b|[$€£¥])/i.test(rawText)) {
+      warnings.push('Currency was not clearly identified; the review form currently defaults to USD. Confirm the invoice currency.');
     }
     if (rawText.trim().length < 50) warnings.push('Very little readable text was returned. Review the PDF manually.');
     warnings.push('Fields are parsed with deterministic rules; verify results before accounting use.');
@@ -229,7 +232,7 @@ export class InvoiceExtractionService {
 
     const totalAmount = findAmount([
       /(?:total\s*amount|total\s*due|balance\s*due|gesamtbetrag|amount\s*payable|grand\s*total)\s*[:.\s]?\s*[$€£]?\s*([\d,]+\.\d{2})/i,
-      /(?:total)\s*[:.\s]?\s*[$€£]?\s*([\d,]+\.\d{2})/i,
+      /\btotal\b\s*[:.\s]?\s*[$€£]?\s*([\d,]+\.\d{2})/i,
     ]) || 0;
 
     const subtotal = findAmount([
