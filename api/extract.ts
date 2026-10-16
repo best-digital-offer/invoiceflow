@@ -75,7 +75,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
           .map((item) => ('str' in item && typeof item.str === 'string' ? item.str : ''))
           .filter(Boolean)
           .join(' ')
-          .replace(/\\s+/g, ' ')
+          .replace(/\s+/g, ' ')
           .trim();
         pages.push({
           page: pageNumber,
@@ -86,7 +86,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         page.cleanup();
       }
 
-      const combinedText = pageTexts.filter(Boolean).join('\\n\\n').trim();
+      const combinedText = pageTexts.filter(Boolean).join('\n\n').trim();
       const pagesRequiringOcr = pages.filter((page) => !page.text).map((page) => page.page);
       if (!combinedText) {
         return sendJson(res, 422, {
