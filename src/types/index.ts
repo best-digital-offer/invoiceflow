@@ -1,4 +1,4 @@
-export type Currency = 'USD' | 'EUR' | 'GBP' | 'CAD' | 'AUD' | 'JPY' | 'CHF';
+export type Currency = 'USD' | 'EUR' | 'GBP' | 'CAD' | 'AUD' | 'JPY' | 'CHF' | 'INR';
 
 export type InvoiceStatus = 'draft' | 'awaiting_review' | 'reviewed' | 'exported';
 export type ValidationStatus = 'validated' | 'warnings' | 'error';
