@@ -1,5 +1,6 @@
 import { BackendConfig, Invoice, ReconciliationRun, UsageRecord, User } from '../types';
 import { DeterministicValidationEngine } from './validationEngine';
+import { supabaseData } from './supabaseData';
 
 const STORAGE_KEYS = {
   CURRENT_USER: 'invoiceflow_current_user',
@@ -524,8 +525,10 @@ class StorageService {
     }
 
     const persisted = this.persistInvoicesSafely(userId, next);
+    const result = persisted.find(inv => inv.id === updatedInvoice.id) || updatedInvoice;
+    void supabaseData.upsertInvoice(result).catch(error => console.warn('Invoice cloud sync failed:', error));
     this.notify();
-    return persisted.find(inv => inv.id === updatedInvoice.id) || updatedInvoice;
+    return result;
   }
 
   saveBatchInvoices(invoices: Invoice[]): Invoice[] {
@@ -554,6 +557,8 @@ class StorageService {
     const merged = [...saved, ...existing.filter(e => !saved.some(s => s.id === e.id))];
     const persisted = this.persistInvoicesSafely(userId, merged);
     const persistedBatch = saved.map(invoice => persisted.find(item => item.id === invoice.id) || invoice);
+    void Promise.all(persistedBatch.map(invoice => supabaseData.upsertInvoice(invoice)))
+      .catch(error => console.warn('Invoice batch cloud sync failed:', error));
     
     this.recordUsage({
       operation: 'batch_upload',
@@ -577,6 +582,7 @@ class StorageService {
     const existing = this.getInvoices(userId);
     const filtered = existing.filter(inv => inv.id !== id);
     localStorage.setItem(this.getInvoicesKey(userId), JSON.stringify(filtered));
+    void supabaseData.deleteInvoice(userId, id).catch(error => console.warn('Invoice cloud delete failed:', error));
     this.notify();
   }
 
@@ -585,6 +591,21 @@ class StorageService {
     if (!uid || uid !== DEMO_USER.id) return;
     localStorage.removeItem(this.getInvoicesKey(uid));
     this.ensureSeedDataForUser(uid);
+    this.notify();
+  }
+
+  replaceInvoicesForUser(userId: string, invoices: Invoice[]) {
+    this.persistInvoicesSafely(userId, invoices);
+    this.notify();
+  }
+
+  replaceReconciliationsForUser(userId: string, runs: ReconciliationRun[]) {
+    localStorage.setItem(`${STORAGE_KEYS.RECONCILIATION_PREFIX}${userId}`, JSON.stringify(runs));
+    this.notify();
+  }
+
+  replaceUsageRecordsForUser(userId: string, records: UsageRecord[]) {
+    localStorage.setItem(`${STORAGE_KEYS.USAGE_PREFIX}${userId}`, JSON.stringify(records.slice(0, 100)));
     this.notify();
   }
 
@@ -607,6 +628,7 @@ class StorageService {
     const existing = this.getReconciliations(userId);
     const updated = [run, ...existing.filter(r => r.id !== run.id)];
     localStorage.setItem(`${STORAGE_KEYS.RECONCILIATION_PREFIX}${userId}`, JSON.stringify(updated));
+    void supabaseData.upsertReconciliation(run).catch(error => console.warn('Reconciliation cloud sync failed:', error));
     this.notify();
   }
 
@@ -662,6 +684,7 @@ class StorageService {
       }
     })();
     localStorage.setItem(key, JSON.stringify([record, ...existing.slice(0, 99)]));
+    void supabaseData.upsertUsageRecord(record).catch(error => console.warn('Usage cloud sync failed:', error));
   }
 
   getUsageRecords(userId?: string): UsageRecord[] {
