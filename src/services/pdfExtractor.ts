@@ -16,7 +16,7 @@ export interface ExtractionResult {
 export class InvoiceExtractionService {
   /**
    * Main entrypoint for processing an uploaded file.
-   * If backend is active & configured, attempts to send multipart/form-data to the open-invoice-engine.
+   * If Vercel API routing is active, sends the PDF to InvoiceFlow's same-origin extraction endpoint.
    * Otherwise uses deterministic client-side extraction with clear labeling.
    */
   static async processFile(
@@ -26,7 +26,7 @@ export class InvoiceExtractionService {
   ): Promise<ExtractionResult> {
     onProgress?.('reading_file', 15, `Reading ${file.name} (${Math.round(file.size / 1024)} KB)...`);
 
-    // 1. If user has enabled live backend, try calling open-invoice-engine
+    // 1. If Vercel API routing is enabled, call the same-origin extraction endpoint
     if (config.useLiveBackend && config.baseUrl) {
       try {
         onProgress?.('extracting_text', 35, `Sending to backend API at ${config.baseUrl}...`);
@@ -44,7 +44,7 @@ export class InvoiceExtractionService {
   }
 
   /**
-   * Calls open-invoice-engine FastAPI backend according to documented contract:
+   * Calls InvoiceFlow's Vercel serverless extraction endpoint:
    * POST /extract
    * Content-Type: multipart/form-data; file=@filename.pdf
    */
@@ -328,7 +328,7 @@ export class InvoiceExtractionService {
       const errMsg = e instanceof Error ? e.message : 'Unknown connection error';
       return {
         success: false,
-        message: `Failed to reach open-invoice-engine at ${baseUrl}: ${errMsg}. Make sure the FastAPI service is running.`,
+        message: `Failed to reach InvoiceFlow's Vercel API at ${baseUrl}: ${errMsg}. Check the deployment and API route.`,
         latencyMs,
       };
     }
