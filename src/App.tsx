@@ -256,7 +256,7 @@ export default function App() {
               >
                 &larr; Back to Dashboard
               </button>
-              <h2 className="text-xl font-bold text-slate-900">open-invoice-engine API Specifications</h2>
+              <h2 className="text-xl font-bold text-slate-900">InvoiceFlow Extraction API Specifications</h2>
               <div className="p-4 bg-white rounded-lg border border-slate-200">
                 <p className="text-xs text-slate-600 mb-3">
                   Click below to open the interactive configuration modal with the live contract schema and connection tester:
@@ -265,7 +265,7 @@ export default function App() {
                   onClick={() => setIsApiConfigOpen(true)}
                   className="px-4 py-2 bg-blue-600 text-white rounded text-xs font-semibold hover:bg-blue-700"
                 >
-                  Open Engine Configuration & Contract
+                  Open Extraction API Settings
                 </button>
               </div>
             </div>
