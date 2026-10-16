@@ -206,13 +206,21 @@ export class InvoiceExtractionService {
     const invMatch = text.match(/(?:invoice\s*(?:#|no\.?|num|number)|rechnung\s*(?:#|nr\.?)|inv\s*#?)\s*[:.\s]?\s*([a-z0-9\-_#/]{3,24})/i);
     const invoiceNumber = invMatch ? invMatch[1].trim() : '';
 
-    // 3. Dates
-    const dateMatches = text.match(/\b(20\d{2}[-/.](?:0[1-9]|1[0-2])[-/.](?:0[1-9]|[12]\d|3[01]))\b/);
-    const invoiceDate = dateMatches ? dateMatches[1].replace(/[/.]/g, '-') : '';
+    // 3. Dates: support ISO dates and common US MM/DD/YYYY invoice dates.
+    const normalizeDate = (value: string): string => {
+      const iso = value.match(/^(20\d{2})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+      if (iso) return `${iso[1]}-${iso[2].padStart(2, '0')}-${iso[3].padStart(2, '0')}`;
+      const us = value.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](20\d{2})$/);
+      if (us) return `${us[3]}-${us[1].padStart(2, '0')}-${us[2].padStart(2, '0')}`;
+      return '';
+    };
+    const datePattern = /\b((?:20\d{2}[-/.](?:0?[1-9]|1[0-2])[-/.](?:0?[1-9]|[12]\d|3[01]))|(?:(?:0?[1-9]|1[0-2])[-/.](?:0?[1-9]|[12]\d|3[01])[-/.]20\d{2}))\b/;
+    const dateMatches = text.match(datePattern);
+    const invoiceDate = dateMatches ? normalizeDate(dateMatches[1]) : '';
 
     // Due Date
-    const dueDateMatches = text.match(/(?:due\s*date|payment\s*due|due|fälligkeit)\s*[:.\s]?\s*(20\d{2}[-/.](?:0[1-9]|1[0-2])[-/.](?:0[1-9]|[12]\d|3[01]))/i);
-    const dueDate = dueDateMatches ? dueDateMatches[1].replace(/[/.]/g, '-') : '';
+    const dueDateMatches = text.match(/(?:due\s*date|payment\s*due|due|fälligkeit)\s*[:.\s]?\s*((?:20\d{2}[-/.](?:0?[1-9]|1[0-2])[-/.](?:0?[1-9]|[12]\d|3[01]))|(?:(?:0?[1-9]|1[0-2])[-/.](?:0?[1-9]|[12]\d|3[01])[-/.]20\d{2}))/i);
+    const dueDate = dueDateMatches ? normalizeDate(dueDateMatches[1]) : '';
 
     // 4. Tax ID / VAT
     const vatMatch = text.match(/\b(?:vat\s*no\.?|tax\s*id|ein|steuernummer|ust-idnr\.?)\s*[:.\s]?\s*([A-Z0-9\-_]{6,20})/i);
@@ -236,24 +244,24 @@ export class InvoiceExtractionService {
     };
 
     const totalAmount = findAmount([
-      /(?:total\s*amount|total\s*due|balance\s*due|gesamtbetrag|amount\s*payable|grand\s*total)\s*[:.\s]?\s*[$€£]?\s*([\d,]+\.\d{2})/i,
-      /\btotal\b\s*[:.\s]?\s*[$€£]?\s*([\d,]+\.\d{2})/i,
+      /(?:total\s*amount|total\s*due|balance\s*due|gesamtbetrag|amount\s*payable|grand\s*total)\s*[:.\s]?\s*[$€£¥]?\s*([\d,]+\.\d{2})/i,
+      /\btotal\b\s*[:.\s]?\s*[$€£¥]?\s*([\d,]+\.\d{2})/i,
     ]) || 0;
 
     const subtotal = findAmount([
-      /(?:subtotal|sub-total|zwischensumme|net\s*amount)\s*[:.\s]?\s*[$€£]?\s*([\d,]+\.\d{2})/i,
+      /(?:subtotal|sub-total|zwischensumme|net\s*amount)\s*[:.\s]?\s*[$€£¥]?\s*([\d,]+\.\d{2})/i,
     ]) || 0;
 
     const taxAmount = findAmount([
-      /(?:tax|vat|mwst|sales\s*tax|gst)\s*[:.\s]?\s*[$€£]?\s*([\d,]+\.\d{2})/i,
+      /(?:tax|vat|mwst|sales\s*tax|gst)\s*[:.\s]?\s*[$€£¥]?\s*([\d,]+\.\d{2})/i,
     ]) || 0;
 
     const shippingAmount = findAmount([
-      /(?:shipping|freight|handling|delivery|porto)\s*[:.\s]?\s*[$€£]?\s*([\d,]+\.\d{2})/i,
+      /(?:shipping|freight|handling|delivery|porto)\s*[:.\s]?\s*[$€£¥]?\s*([\d,]+\.\d{2})/i,
     ]) || 0;
 
     const discount = findAmount([
-      /(?:discount|rabatt|skonto)\s*[:.\s]?\s*[$€£]?\s*([\d,]+\.\d{2})/i,
+      /(?:discount|rabatt|skonto)\s*[:.\s]?\s*[$€£¥]?\s*([\d,]+\.\d{2})/i,
     ]) || 0;
 
     // Supplier name heuristic: First non-empty lines before "Invoice" or clean filename
