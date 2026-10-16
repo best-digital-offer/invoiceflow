@@ -16,6 +16,7 @@ import { BackendConfig, Invoice } from '../../types';
 import { InvoiceExtractionService } from '../../services/pdfExtractor';
 import { DeterministicValidationEngine } from '../../services/validationEngine';
 import { storageService, INITIAL_DEMO_INVOICES } from '../../services/storage';
+import { supabaseData } from '../../services/supabaseData';
 
 interface FileUploadTask {
   id: string;
@@ -125,9 +126,21 @@ export const InvoiceUploader: React.FC<InvoiceUploaderProps> = ({
           }
         );
 
+        const ownerId = storageService.getCurrentUser()?.id || '';
+        const invoiceId = `inv_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+        const extractionWarnings = [...extraction.warnings];
+        let documentPath: string | undefined;
+        try {
+          documentPath = await supabaseData.uploadInvoicePdf(ownerId, invoiceId, task.file);
+        } catch (storageError) {
+          const reason = storageError instanceof Error ? storageError.message : 'Unknown storage error';
+          extractionWarnings.push(`PDF preview could not be saved to secure cloud storage: ${reason}`);
+        }
+
         const newInvoice: Invoice = {
-          id: `inv_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-          ownerId: storageService.getCurrentUser()?.id || '',
+          id: invoiceId,
+          ownerId,
+          documentPath,
           originalFilename: task.file.name,
           fileSize: task.file.size,
           fileType: task.file.type || 'application/pdf',
@@ -151,7 +164,7 @@ export const InvoiceUploader: React.FC<InvoiceUploaderProps> = ({
           extractionMethod: extraction.extractionMethod,
           extractionStatus: 'completed',
           reviewStatus: 'awaiting_review',
-          notes: extraction.warnings.length > 0 ? extraction.warnings.join(' | ') : undefined,
+          notes: extractionWarnings.length > 0 ? extractionWarnings.join(' | ') : undefined,
           validationResult: DeterministicValidationEngine.validate({
             ...extraction.invoice,
             supplierName: extraction.invoice.supplierName || '',
@@ -176,9 +189,9 @@ export const InvoiceUploader: React.FC<InvoiceUploaderProps> = ({
         const saved = storageService.saveInvoice(newInvoice);
         storageService.recordUsage({
           operation: 'pdf_extraction',
-          status: extraction.warnings.length > 0 ? 'warning' : 'success',
+          status: extractionWarnings.length > 0 ? 'warning' : 'success',
           itemCount: 1,
-          details: `Extracted ${task.file.name}; ${extraction.warnings.length} review warning(s).`,
+          details: `Extracted ${task.file.name}; ${extractionWarnings.length} review/storage warning(s).`,
         });
         completedInvoices.push(saved);
 
