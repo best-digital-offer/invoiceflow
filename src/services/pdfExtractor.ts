@@ -313,7 +313,7 @@ export class InvoiceExtractionService {
       if (response.ok) {
         return {
           success: true,
-          message: `Connected successfully to open-invoice-engine (${latencyMs}ms response time).`,
+          message: `Connected successfully to InvoiceFlow's Vercel extraction API (${latencyMs}ms response time).`,
           latencyMs,
         };
       } else {
