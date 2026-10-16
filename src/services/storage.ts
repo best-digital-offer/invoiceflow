@@ -372,8 +372,15 @@ class StorageService {
   setCurrentUser(user: User | null) {
     if (user) {
       localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
-      // Ensure seed records exist for this user if first time
-      this.ensureSeedDataForUser(user.id);
+      // Demo data is reserved for the explicit demo account. Real accounts start empty.
+      if (user.id === DEMO_USER.id) {
+        this.ensureSeedDataForUser(user.id);
+      } else {
+        const invoicesKey = this.getInvoicesKey(user.id);
+        if (!localStorage.getItem(invoicesKey)) {
+          localStorage.setItem(invoicesKey, JSON.stringify([]));
+        }
+      }
     } else {
       localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
     }
