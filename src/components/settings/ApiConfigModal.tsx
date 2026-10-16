@@ -64,7 +64,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
       roundingTolerance: 0.02,
     });
     setConfig(updated);
-    setTestStatus({ running: false, message: 'Reset to standard in-browser deterministic engine.' });
+    setTestStatus({ running: false, success: true, message: 'Local deterministic parser enabled.' });
   };
 
   return (
