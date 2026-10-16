@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Check, HelpCircle, Shield, Info, ArrowRight } from 'lucide-react';
 
 interface PricingPageProps {
@@ -6,7 +6,6 @@ interface PricingPageProps {
 }
 
 export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan }) => {
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
 
   return (
     <div className="bg-slate-50 min-h-screen py-12 px-4 sm:px-6 lg:px-8">
@@ -24,29 +23,6 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan }) => {
             Initial proposed commercial plans designed for low operational overhead with zero paid AI API dependencies.
           </p>
 
-          {/* Monthly / Annual toggle */}
-          <div className="pt-4 flex items-center justify-center space-x-3 text-xs font-semibold">
-            <span className={billingCycle === 'monthly' ? 'text-slate-900' : 'text-slate-500'}>
-              Monthly Billing
-            </span>
-            <button
-              type="button"
-              onClick={() => setBillingCycle(billingCycle === 'monthly' ? 'annual' : 'monthly')}
-              className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-slate-300 transition-colors duration-200 ease-in-out focus:outline-none"
-            >
-              <span
-                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
-                  billingCycle === 'annual' ? 'translate-x-5 bg-blue-600' : 'translate-x-0'
-                }`}
-              />
-            </button>
-            <span className={billingCycle === 'annual' ? 'text-slate-900 flex items-center' : 'text-slate-500 flex items-center'}>
-              Annual Billing
-              <span className="ml-1.5 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                Save 37%
-              </span>
-            </span>
-          </div>
         </div>
 
         {/* 3 Pricing Cards */}
