@@ -150,7 +150,7 @@ export const ReconciliationWorkspace: React.FC<ReconciliationWorkspaceProps> = (
             Spreadsheet Reconciliation
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Compare ERP / accounting ledger records (CSV, XLSX) directly against verified extracted invoices.
+            Compare ERP / accounting ledger CSV records against extracted invoices.
           </p>
         </div>
 
