@@ -54,7 +54,8 @@ function saveSession(session: SupabaseSession) {
 
 function mapUser(authUser: SupabaseUser): User {
   const metadata = authUser.user_metadata ?? {};
-  const plan = metadata.plan === 'monthly' || metadata.plan === 'annual' ? metadata.plan : 'free_trial';
+  // Paid plans must come from verified billing, never client-editable auth metadata.
+  const plan: User['plan'] = 'free_trial';
   const email = authUser.email ?? '';
   return {
     id: authUser.id,
