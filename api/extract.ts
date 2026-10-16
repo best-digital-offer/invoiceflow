@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { CanvasFactory } from 'pdf-parse/worker';
 import { PDFParse } from 'pdf-parse';
 
 export const config = {
@@ -56,7 +57,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
     // v2 uses current PDF.js and avoids the legacy parser's "Illegal character"
     // failure on otherwise readable invoice PDFs.
-    parser = new PDFParse({ data: new Uint8Array(buffer), useSystemFonts: true });
+    parser = new PDFParse({ data: new Uint8Array(buffer), useSystemFonts: true, CanvasFactory });
     const info = await parser.getInfo();
     const pageCount = Number(info.total) || Number(info.pages?.length) || 0;
     if (pageCount > MAX_PDF_PAGES) {
