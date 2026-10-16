@@ -616,17 +616,18 @@ class StorageService {
     if (!raw) return DEFAULT_CONFIG;
     try {
       const saved = JSON.parse(raw) as Partial<BackendConfig>;
-      // Migrate older localhost or external-host configurations to the same-origin Vercel API.
-      if (
-        (saved.baseUrl === 'http://localhost:8000' || saved.baseUrl?.includes('onrender.com')) &&
-        localStorage.getItem('invoiceflow_api_default_migrated') !== 'true'
-      ) {
-        const migrated = { ...DEFAULT_CONFIG, ...saved, baseUrl: DEFAULT_CONFIG.baseUrl, apiKey: '', useLiveBackend: true };
-        localStorage.setItem(STORAGE_KEYS.BACKEND_CONFIG, JSON.stringify(migrated));
-        localStorage.setItem('invoiceflow_api_default_migrated', 'true');
-        return migrated;
+      // Enforce the approved architecture: only this Vercel deployment's same-origin API.
+      // Never send invoice files to a custom endpoint or retain a browser-side API secret.
+      const normalized: BackendConfig = {
+        ...DEFAULT_CONFIG,
+        ...saved,
+        baseUrl: '/api',
+        apiKey: '',
+      };
+      if (saved.baseUrl !== '/api' || saved.apiKey) {
+        localStorage.setItem(STORAGE_KEYS.BACKEND_CONFIG, JSON.stringify(normalized));
       }
-      return { ...DEFAULT_CONFIG, ...saved };
+      return normalized;
     } catch {
       return DEFAULT_CONFIG;
     }
