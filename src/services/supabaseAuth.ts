@@ -121,7 +121,7 @@ export const supabaseAuth = {
     const result = await authRequest<SupabaseUser & Partial<SupabaseSession> & {
       user?: SupabaseUser;
       session?: SupabaseSession | null;
-    }>('/signup', {
+    }>('/signup?redirect_to=' + encodeURIComponent(window.location.origin), {
       method: 'POST',
       body: JSON.stringify({
         email: input.email.trim(),
