@@ -99,7 +99,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
             onClick={handleVerifyEmail}
             className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded font-semibold text-xs transition-colors shrink-0 ml-3"
           >
-            Verify Now
+            Resend Confirmation
           </button>
         </div>
       )}
