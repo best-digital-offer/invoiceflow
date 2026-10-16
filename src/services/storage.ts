@@ -414,6 +414,7 @@ class StorageService {
     if (!current) return;
     const updated = { ...current, ...updates };
     this.setCurrentUser(updated);
+    void supabaseData.upsertProfile(updated).catch(error => console.warn('Profile cloud sync failed:', error));
   }
 
   verifyCurrentUserEmail() {
