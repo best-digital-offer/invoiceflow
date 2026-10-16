@@ -49,7 +49,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
             {/* Supporting text (Requirement #3) */}
             <p className="text-lg sm:text-xl text-slate-600 leading-relaxed max-w-2xl mx-auto">
-              Extract structured vendor data from digital and scanned PDF invoices, mathematically verify line totals and taxes against balances, and reconcile directly against your existing accounting spreadsheets.
+              Extract key fields from text-based PDF invoices, verify invoice arithmetic, and reconcile records against your accounting spreadsheets.
             </p>
 
             {/* CTAs */}
@@ -209,7 +209,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 1. Upload Invoices
               </h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Drop individual PDFs or entire batches. The system extracts structured fields from digitally generated invoices or scanned documents using layout analysis and optical recognition.
+                Upload text-based PDF invoices individually or in batches. InvoiceFlow extracts selectable text and applies deterministic field rules; scanned-PDF OCR is not enabled yet.
               </p>
               <div className="pt-2 text-xs font-semibold text-blue-600 flex items-center">
                 <span>Multi-file batch queue</span>
@@ -384,9 +384,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <div className="w-9 h-9 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center">
                 <Cpu className="w-5 h-5" />
               </div>
-              <h3 className="font-bold text-slate-900 text-sm">Scanned Invoice OCR</h3>
+              <h3 className="font-bold text-slate-900 text-sm">Selectable PDF Text Extraction</h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Processes scanned and photo invoices with layout token parsing, whether running in-browser or linked to open-invoice-engine.
+                Extracts embedded text from digital PDFs. Image-only and scanned documents need OCR, which is not enabled yet.
               </p>
             </div>
 
