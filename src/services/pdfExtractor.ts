@@ -100,7 +100,7 @@ export class InvoiceExtractionService {
     if (data.ocr_required || (Array.isArray(data.pages_requiring_ocr) && data.pages_requiring_ocr.length > 0)) {
       warnings.push('One or more pages may still require OCR. Review extracted values against the PDF.');
     }
-    if (!/(?:\\bUSD\\b|\\bEUR\\b|\\bGBP\\b|\\bCAD\\b|\\bAUD\\b|\\bJPY\\b|\\bCHF\\b|[$€£¥])/i.test(rawText)) {
+    if (!/(?:\bUSD\b|\bEUR\b|\bGBP\b|\bCAD\b|\bAUD\b|\bJPY\b|\bCHF\b|[$€£¥])/i.test(rawText)) {
       warnings.push('Currency was not clearly identified; the review form currently defaults to USD. Confirm the invoice currency.');
     }
     if (rawText.trim().length < 50) warnings.push('Very little readable text was returned. Review the PDF manually.');
