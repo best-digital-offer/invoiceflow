@@ -260,7 +260,7 @@ export const InvoiceUploader: React.FC<InvoiceUploaderProps> = ({
             title="Import 5 standard sample invoices with varied currencies and discrepancy tests"
           >
             <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-            <span>Load Sample PDF Batch</span>
+            <span>Load Sample Invoice Batch</span>
           </button>
 
           <button
@@ -282,7 +282,7 @@ export const InvoiceUploader: React.FC<InvoiceUploaderProps> = ({
           <span className={`w-2.5 h-2.5 rounded-full ${backendConfig.useLiveBackend ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
           <div>
             <span className="font-bold">
-              {backendConfig.useLiveBackend ? 'Live Backend Extraction Active' : 'In-Browser Deterministic Engine Mode'}
+              {backendConfig.useLiveBackend ? 'Vercel API Extraction Active' : 'In-Browser Deterministic Engine Mode'}
             </span>
             <p className="text-[11px] opacity-80 mt-0.5">
               {backendConfig.useLiveBackend
@@ -296,7 +296,7 @@ export const InvoiceUploader: React.FC<InvoiceUploaderProps> = ({
           onClick={onOpenApiConfig}
           className="text-xs font-semibold underline hover:opacity-80 shrink-0 ml-3"
         >
-          {backendConfig.useLiveBackend ? 'Change Endpoint' : 'Connect Python Backend'}
+          {backendConfig.useLiveBackend ? 'API Settings' : 'API Settings'}
         </button>
       </div>
 
