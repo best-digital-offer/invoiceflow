@@ -58,7 +58,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
 
   const handleResetToDemo = () => {
     const updated = storageService.saveBackendConfig({
-      baseUrl: 'http://localhost:8000/api/v1',
+      baseUrl: 'http://localhost:8000',
       apiKey: '',
       useLiveBackend: false,
       roundingTolerance: 0.02,
@@ -186,7 +186,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
                     type="url"
                     value={config.baseUrl}
                     onChange={e => setConfig(prev => ({ ...prev, baseUrl: e.target.value }))}
-                    placeholder="http://localhost:8000/api/v1"
+                    placeholder="http://localhost:8000"
                     className="flex-1 px-3 py-2 rounded border border-slate-300 font-mono text-xs focus:ring-1 focus:ring-blue-500"
                   />
                   <button
@@ -307,7 +307,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
             <div className="space-y-4">
               <div className="p-3 bg-slate-900 text-slate-200 rounded-lg font-mono text-xs overflow-x-auto space-y-2">
                 <div className="text-emerald-400 font-bold">
-                  POST /api/v1/extract
+                  POST /extract
                 </div>
                 <div className="text-slate-400">
                   Content-Type: multipart/form-data
@@ -316,40 +316,21 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
                   Headers: Authorization: Bearer &lt;KEY&gt;
                 </div>
                 <pre className="text-blue-300 text-[11px] leading-relaxed pt-2">
-{`// Expected Request Body:
-file: <binary PDF or image>
-extract_line_items: true
-currency_hint: "auto"
+{`// Request: multipart/form-data
+file: <PDF file>
 
-// Expected Response Payload (200 OK):
+// Actual Open Invoice Engine response:
 {
-  "vendor_name": "Acme Cloud Technologies Inc.",
-  "vendor_address": "550 Mission St, Suite 1800, San Francisco, CA",
-  "vendor_tax_id": "US-EIN-84-2910394",
-  "invoice_number": "INV-2024-8842",
-  "invoice_date": "2026-09-15",
-  "due_date": "2026-10-15",
-  "po_number": "PO-99410",
-  "customer_name": "Meridian Capital Partners",
-  "currency": "USD",
-  "subtotal": 3850.00,
-  "discount": 150.00,
-  "tax_amount": 323.75,
-  "shipping_amount": 0.00,
-  "total_amount": 4023.75,
-  "payment_terms": "Net 30",
-  "line_items": [
-    {
-      "description": "Enterprise Dedicated Kubernetes Cluster",
-      "quantity": 1,
-      "unit_price": 2200.00,
-      "tax_amount": 192.50,
-      "line_total": 2200.00
-    }
-  ],
-  "raw_text": "...",
-  "warnings": []
-}`}
+  "page_count": 1,
+  "pages": [],
+  "combined_text": "Invoice # INV-100 ...",
+  "ocr_used": false,
+  "ocr_required": false,
+  "pages_requiring_ocr": []
+}
+
+// InvoiceFlow parses combined_text locally using deterministic rules.
+// Optional POST /extract-invoice uses Groq only when GROQ_API_KEY is configured.`}
                 </pre>
               </div>
 
@@ -358,7 +339,7 @@ currency_hint: "auto"
                   <strong>Health Check Endpoint:</strong> <code className="font-mono bg-slate-100 px-1 py-0.5 rounded">GET /health</code> returning <code className="font-mono bg-slate-100 px-1 py-0.5 rounded">&#123;&quot;status&quot;: &quot;ok&quot;&#125;</code>.
                 </p>
                 <p>
-                  <strong>Zero-AI Contract:</strong> Open-invoice-engine can utilize Tesseract OCR, Poppler/PDFMiner, and layout-parser to extract fields deterministically without incurring paid LLM token fees.
+                  <strong>Zero-AI workflow:</strong> The API extracts PDF text and runs local OCR where available. InvoiceFlow applies deterministic parsing rules; fields must be reviewed. Groq is optional and is not used by the standard /extract workflow.
                 </p>
               </div>
             </div>
