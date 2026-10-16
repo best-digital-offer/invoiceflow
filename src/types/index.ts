@@ -40,7 +40,8 @@ export interface Invoice {
   originalFilename: string;
   fileSize: number;
   fileType: string;
-  fileDataUrl?: string; // Blob or base64 data for document viewer
+  fileDataUrl?: string; // Blob, signed URL, or base64 data for document viewer
+  documentPath?: string; // Private Supabase Storage path for the original PDF
   sampleDocType?: 'acme_cloud' | 'global_logistics' | 'apex_hardware' | 'nordic_design' | 'metropolis_legal';
   
   // Supplier / Vendor
