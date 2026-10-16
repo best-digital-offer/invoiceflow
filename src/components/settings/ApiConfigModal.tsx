@@ -5,9 +5,9 @@ import {
   CheckCircle2, 
   AlertCircle, 
   Activity, 
-  ExternalLink, 
+ 
   Code, 
-  Key, 
+ 
   ShieldCheck,
   RotateCcw
 } from 'lucide-react';
@@ -225,7 +225,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
                     min="5"
                     max="30"
                     value={Math.round(config.timeoutMs / 1000)}
-                    onChange={e => setConfig(prev => ({ ...prev, timeoutMs: Math.min(30000, Math.max(5000, parseInt(e.target.value) || 15)) * 1000 }))}
+                    onChange={e => setConfig(prev => ({ ...prev, timeoutMs: Math.min(30, Math.max(5, parseInt(e.target.value) || 15)) * 1000 }))}
                     className="w-full px-3 py-2 rounded border border-slate-300 font-mono text-xs"
                   />
                   <p className="text-[10px] text-slate-500 mt-0.5">Vercel function request timeout</p>
