@@ -40,7 +40,7 @@ export const HowItWorksPage: React.FC<PageProps> = ({ onBackToApp }) => {
         <div className="bg-white p-5 rounded-lg border border-slate-200 space-y-2">
           <h3 className="text-sm font-bold text-slate-900">1. In-Browser & Backend Extraction Engine</h3>
           <p>
-            When a PDF is uploaded, InvoiceFlow extracts the embedded digital text stream directly in the browser or passes the binary to the open-source <code className="font-mono bg-slate-100 px-1 py-0.5 rounded">open-invoice-engine</code> FastAPI service. Standard deterministic heuristics identify key accounting tokens: vendor names, tax registration IDs, invoice references, line items, and totals.
+            When a PDF is uploaded, InvoiceFlow sends it to its same-origin Vercel extraction endpoint, which extracts selectable text. Deterministic rules attempt to identify fields such as supplier name, tax ID, invoice number, dates, and monetary totals. Verify every extracted value before accounting use; line items may need to be entered or corrected manually.
           </p>
         </div>
 
@@ -82,7 +82,7 @@ export const FAQPage: React.FC<PageProps> = ({ onBackToApp }) => {
     },
     {
       q: 'Can InvoiceFlow handle scanned invoices or photo receipts?',
-      a: 'Yes. For scanned documents without selectable digital text layers, optical character recognition (OCR) parses visual bounding boxes. If no live backend is connected, the app transparently notifies you that scanned documents require careful visual review.',
+      a: 'Not yet. InvoiceFlow currently supports text-based PDFs with selectable text. Scanned PDFs and photo receipts require OCR, which is not enabled in this version.',
     },
     {
       q: 'How does InvoiceFlow protect multi-tenant user data?',
@@ -156,7 +156,7 @@ export const AboutPage: React.FC<PageProps> = ({ onBackToApp }) => {
         <ul className="list-disc pl-5 space-y-1.5">
           <li><strong>No Compulsory Paid AI:</strong> Core extraction and mathematical validation operate without requiring external commercial LLM tokens.</li>
           <li><strong>Human Oversight:</strong> Extracted values are cleanly laid out alongside original documents for rapid, confident human verification.</li>
-          <li><strong>Open Architecture:</strong> Built to connect seamlessly with open-source extraction engines like <code className="font-mono bg-slate-100 px-1 py-0.5 rounded">open-invoice-engine</code>.</li>
+          <li><strong>Vercel + Supabase:</strong> Uses a same-origin Vercel extraction API and Supabase authentication, database, and private PDF storage.</li>
         </ul>
       </div>
     </div>
