@@ -190,6 +190,21 @@ export const supabaseAuth = {
     }
   },
 
+  async getAccessToken(): Promise<string | null> {
+    if (!this.isConfigured()) return null;
+    let session = readSession();
+    if (!session?.access_token || !session.refresh_token) return null;
+    if ((session.expires_at ?? 0) * 1000 <= Date.now() + 60_000) {
+      try {
+        session = await refreshSession(session);
+      } catch {
+        localStorage.removeItem(SESSION_KEY);
+        return null;
+      }
+    }
+    return session.access_token;
+  },
+
   async restoreSession(): Promise<User | null> {
     if (!this.isConfigured()) return null;
     let session = readSession();
