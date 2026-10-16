@@ -23,6 +23,7 @@ import {
 } from './components/public/PublicStaticPages';
 import { storageService, DEMO_USER } from './services/storage';
 import { supabaseAuth } from './services/supabaseAuth';
+import { supabaseData, isSupabaseUserId } from './services/supabaseData';
 import { BackendConfig, Invoice, User } from './types';
 
 export default function App() {
@@ -43,6 +44,32 @@ export default function App() {
   const [isApiConfigOpen, setIsApiConfigOpen] = useState<boolean>(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
 
+  const hydrateCloudData = async (user: User) => {
+    if (!isSupabaseUserId(user.id)) return;
+    try {
+      await supabaseData.upsertProfile(user);
+      const localInvoices = storageService.getInvoices(user.id);
+      const [remoteInvoices, remoteRuns, remoteUsage] = await Promise.all([
+        supabaseData.fetchInvoices(user.id),
+        supabaseData.fetchReconciliations(user.id),
+        supabaseData.fetchUsageRecords(user.id),
+      ]);
+
+      if (remoteInvoices.length > 0) {
+        storageService.replaceInvoicesForUser(user.id, remoteInvoices);
+      } else if (localInvoices.length > 0) {
+        // One-time migration for locally saved records created before cloud persistence was enabled.
+        await Promise.all(localInvoices.map(invoice => supabaseData.upsertInvoice(invoice)));
+      } else {
+        storageService.replaceInvoicesForUser(user.id, []);
+      }
+      storageService.replaceReconciliationsForUser(user.id, remoteRuns);
+      storageService.replaceUsageRecordsForUser(user.id, remoteUsage);
+    } catch (error) {
+      console.warn('InvoiceFlow cloud sync is temporarily unavailable; keeping the local cache.', error);
+    }
+  };
+
   // Restore real Supabase sessions and keep local UI state in sync with storage.
   useEffect(() => {
     let mounted = true;
@@ -58,10 +85,12 @@ export default function App() {
       setIsAuthModalOpen(true);
     }
 
-    void supabaseAuth.restoreSession().then(user => {
+    void (async () => {
+      const user = await supabaseAuth.restoreSession();
       if (!mounted) return;
       if (user) {
         storageService.setCurrentUser(user);
+        await hydrateCloudData(user);
       } else {
         const storedUser = storageService.getCurrentUser();
         if (storedUser && storedUser.id !== DEMO_USER.id) {
@@ -69,7 +98,7 @@ export default function App() {
           setCurrentView('landing');
         }
       }
-    });
+    })();
 
     return () => {
       mounted = false;
@@ -311,6 +340,7 @@ export default function App() {
         onSuccess={(user) => {
           setCurrentUser(user);
           setCurrentView('dashboard');
+          void hydrateCloudData(user);
         }}
       />
 
