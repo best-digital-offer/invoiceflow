@@ -195,6 +195,8 @@ export class InvoiceExtractionService {
   public static parseRawInvoiceText(text: string, filename: string): Partial<Invoice> {
     // 1. Currency detection
     let currency: Currency = 'USD';
+    if (/\bINR\b/i.test(text) || text.includes('₹')) currency = 'INR';
+    else if (text.includes('€') || /\bEUR\b/i.test(text)) currency = 'EUR';
     if (text.includes('€') || /\bEUR\b/i.test(text)) currency = 'EUR';
     else if (text.includes('£') || /\bGBP\b/i.test(text)) currency = 'GBP';
     else if (/\bCAD\b/i.test(text)) currency = 'CAD';
@@ -203,7 +205,8 @@ export class InvoiceExtractionService {
     else if (/\bCHF\b/i.test(text)) currency = 'CHF';
 
     // 2. Invoice Number
-    const invMatch = text.match(/(?:invoice\s*(?:#|no\.?|num|number)|rechnung\s*(?:#|nr\.?)|inv\s*#?)\s*[:.\s]?\s*([a-z0-9\-_#/]{3,24})/i);
+    const invMatch = text.match(/\binvoice\s*(?:number|no\.?|#)\s*[:#.-]?\s*([A-Z0-9][A-Z0-9/_-]{2,30})/i)
+      || text.match(/\binvoice\s*(?:#|no\.?|num|number)\s*[:.\s]?\s*([a-z0-9\-_#/]{3,24})/i);
     const invoiceNumber = invMatch ? invMatch[1].trim() : '';
 
     // 3. Dates: support ISO dates and common US MM/DD/YYYY invoice dates.
@@ -212,14 +215,16 @@ export class InvoiceExtractionService {
       if (iso) return `${iso[1]}-${iso[2].padStart(2, '0')}-${iso[3].padStart(2, '0')}`;
       const us = value.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](20\d{2})$/);
       if (us) return `${us[3]}-${us[1].padStart(2, '0')}-${us[2].padStart(2, '0')}`;
+      const named = value.match(/^(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(20\d{2})$/i);
+      if (named) { const month = ['january','february','march','april','may','june','july','august','september','october','november','december'].indexOf(named[2].toLowerCase()) + 1; return `${named[3]}-${String(month).padStart(2, '0')}-${named[1].padStart(2, '0')}`; }
       return '';
     };
-    const datePattern = /\b((?:20\d{2}[-/.](?:0?[1-9]|1[0-2])[-/.](?:0?[1-9]|[12]\d|3[01]))|(?:(?:0?[1-9]|1[0-2])[-/.](?:0?[1-9]|[12]\d|3[01])[-/.]20\d{2}))\b/;
+    const datePattern = /\b((?:20\d{2}[-/.](?:0?[1-9]|1[0-2])[-/.](?:0?[1-9]|[12]\d|3[01]))|(?:(?:0?[1-9]|1[0-2])[-/.](?:0?[1-9]|[12]\d|3[01])[-/.]20\d{2})|(?:\d{1,2}\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+20\d{2}))/i;
     const dateMatches = text.match(datePattern);
     const invoiceDate = dateMatches ? normalizeDate(dateMatches[1]) : '';
 
     // Due Date
-    const dueDateMatches = text.match(/(?:due\s*date|payment\s*due|due|fälligkeit)\s*[:.\s]?\s*((?:20\d{2}[-/.](?:0?[1-9]|1[0-2])[-/.](?:0?[1-9]|[12]\d|3[01]))|(?:(?:0?[1-9]|1[0-2])[-/.](?:0?[1-9]|[12]\d|3[01])[-/.]20\d{2}))/i);
+    const dueDateMatches = text.match(/(?:due\s*date|payment\s*due|due|fälligkeit)\s*[:.\s]?\s*((?:20\d{2}[-/.](?:0?[1-9]|1[0-2])[-/.](?:0?[1-9]|[12]\d|3[01]))|(?:(?:0?[1-9]|1[0-2])[-/.](?:0?[1-9]|[12]\d|3[01])[-/.]20\d{2})|(?:\d{1,2}\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+20\d{2}))/i);
     const dueDate = dueDateMatches ? normalizeDate(dueDateMatches[1]) : '';
 
     // 4. Tax ID / VAT
@@ -252,7 +257,9 @@ export class InvoiceExtractionService {
       /(?:subtotal|sub-total|zwischensumme|net\s*amount)\s*[:.\s]?\s*[$€£¥]?\s*([\d,]+\.\d{2})/i,
     ]) || 0;
 
-    const taxAmount = findAmount([
+    const taxAmount = /\b(?:CGST|SGST|IGST)\b/i.test(text)
+      ? (findAmount([/CGST\s*\([^)]*\)\s*[$€£¥₹]?\s*([\d,]+\.\d{2})/i]) + findAmount([/SGST\s*\([^)]*\)\s*[$€£¥₹]?\s*([\d,]+\.\d{2})/i]) + findAmount([/IGST\s*\([^)]*\)\s*[$€£¥₹]?\s*([\d,]+\.\d{2})/i]))
+      : (findAmount([/(?:total\s+tax|tax\s+amount|tax|vat|mwst|sales\s*tax|gst)\s*[:.\s]?\s*[$€£¥₹]?\s*([\d,]+\.\d{2})/i]) || 0);
       /(?:tax|vat|mwst|sales\s*tax|gst)\s*[:.\s]?\s*[$€£¥]?\s*([\d,]+\.\d{2})/i,
     ]) || 0;
 
