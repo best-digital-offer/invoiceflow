@@ -64,7 +64,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
             Account & Organization Settings
           </h1>
           <p className="text-slate-500 mt-0.5">
-            Manage your credentials, subscription tier, and data isolation preferences.
+            Manage your profile, email verification, and account preferences.
           </p>
         </div>
         <button
@@ -164,7 +164,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
       {/* Subscription Tier Info */}
       <div className="bg-white p-6 rounded-lg border border-slate-200 space-y-4 shadow-2xs">
         <h3 className="font-bold text-sm text-slate-900 border-b border-slate-100 pb-2 flex items-center justify-between">
-          <span>Active Subscription Plan</span>
+          <span>Current Plan</span>
           <span className="capitalize px-2.5 py-0.5 rounded text-xs font-bold bg-blue-50 text-blue-800 border border-blue-200">
             {currentUser.plan.replace('_', ' ')}
           </span>
@@ -173,7 +173,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
         <div className="flex items-center justify-between text-xs">
           <div>
             <p className="font-semibold text-slate-800">
-              {currentUser.plan === 'monthly' ? '$10/month Billing' : currentUser.plan === 'annual' ? '$75/year Billing' : 'Free Trial Tier'}
+              {currentUser.plan === 'free_trial' ? 'Free Trial' : 'Paid plan status requires verified checkout'}
             </p>
             <p className="text-slate-500 mt-0.5">
               Selectable-text PDF extraction, invoice validation, and CSV reconciliation.
