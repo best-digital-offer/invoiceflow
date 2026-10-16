@@ -269,10 +269,10 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
                   POST /extract
                 </div>
                 <div className="text-slate-400">
-                  Content-Type: multipart/form-data
+                  Content-Type: application/pdf
                 </div>
                 <div className="text-slate-300">
-                  Headers: Authorization: Bearer &lt;KEY&gt;
+                  No API key header required
                 </div>
                 <pre className="text-blue-300 text-[11px] leading-relaxed pt-2">
 {`// Request: multipart/form-data
@@ -295,7 +295,7 @@ file: <PDF file>
 
               <div className="text-slate-600 text-xs space-y-2">
                 <p>
-                  <strong>Health Check Endpoint:</strong> <code className="font-mono bg-slate-100 px-1 py-0.5 rounded">GET /health</code> returning <code className="font-mono bg-slate-100 px-1 py-0.5 rounded">&#123;&quot;ok&quot;: true&#125;</code>.
+                  <strong>Health Check Endpoint:</strong> <code className="font-mono bg-slate-100 px-1 py-0.5 rounded">GET /api/health</code> returning <code className="font-mono bg-slate-100 px-1 py-0.5 rounded">&#123;&quot;ok&quot;: true&#125;</code>.
                 </p>
                 <p>
                   <strong>Zero-AI workflow:</strong> The API extracts selectable text from PDFs and applies deterministic parsing rules; fields must be reviewed. Scanned-PDF OCR is not enabled in the current /extract workflow.
