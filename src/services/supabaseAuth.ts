@@ -151,7 +151,7 @@ export const supabaseAuth = {
   },
 
   async requestPasswordReset(email: string): Promise<void> {
-    const { url } = config();
+    config();
     await authRequest('/recover?redirect_to=' + encodeURIComponent(window.location.origin), {
       method: 'POST',
       body: JSON.stringify({ email: email.trim() }),
