@@ -1,8 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-// Import the parser implementation directly. The package root index.js runs a
-// bundled-incompatible debug self-test when Vercel's bundler removes module.parent,
-// attempting to read ./test/data/05-versions-space.pdf at runtime.
-import pdfParse from 'pdf-parse/lib/pdf-parse.js';
+import { PDFParse } from 'pdf-parse';
 
 export const config = {
   api: {
@@ -50,18 +47,23 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     return sendJson(res, 415, { detail: 'Send the PDF as the raw request body with Content-Type application/pdf.' });
   }
 
+  let parser: InstanceType<typeof PDFParse> | undefined;
   try {
     const buffer = await readPdfBody(req);
     if (buffer.length < 5 || buffer.subarray(0, 5).toString('ascii') !== '%PDF-') {
       return sendJson(res, 400, { detail: 'The uploaded file is not a valid PDF.' });
     }
 
-    const parsed = await pdfParse(buffer, { max: MAX_PDF_PAGES });
-    const pageCount = Number(parsed.numpages) || 0;
+    // v2 uses current PDF.js and avoids the legacy parser's "Illegal character"
+    // failure on otherwise readable invoice PDFs.
+    parser = new PDFParse({ data: new Uint8Array(buffer), useSystemFonts: true });
+    const info = await parser.getInfo();
+    const pageCount = Number(info.total) || Number(info.pages?.length) || 0;
     if (pageCount > MAX_PDF_PAGES) {
       return sendJson(res, 413, { detail: `PDF has ${pageCount} pages; the maximum is ${MAX_PDF_PAGES}.` });
     }
 
+    const parsed = await parser.getText({ first: MAX_PDF_PAGES });
     const combinedText = String(parsed.text || '')
       .replace(/\r\n?/g, '\n')
       .replace(/[ \t]+\n/g, '\n')
@@ -77,25 +79,33 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       });
     }
 
-    const pages = [{
-      page: 1,
-      text: combinedText,
-      extraction_method: 'pdf_parse_text',
-    }];
+    const pages = Array.isArray(parsed.pages)
+      ? parsed.pages.map((page: { num?: number; pageNumber?: number; text?: string }, index: number) => ({
+          page: Number(page.num ?? page.pageNumber) || index + 1,
+          text: String(page.text || ''),
+          extraction_method: 'pdf_parse_v2_text',
+        }))
+      : [{ page: 1, text: combinedText, extraction_method: 'pdf_parse_v2_text' }];
 
     return sendJson(res, 200, {
-      page_count: pageCount,
+      page_count: pageCount || pages.length,
       pages,
       combined_text: combinedText,
       ocr_used: false,
       ocr_required: false,
       pages_requiring_ocr: [],
-      extraction_method: 'pdf_parse_text',
+      extraction_method: 'pdf_parse_v2_text',
     });
   } catch (error) {
     const statusCode = (error as Error & { statusCode?: number }).statusCode;
     const message = error instanceof Error ? error.message : 'PDF extraction failed.';
     console.error('InvoiceFlow PDF extraction failed:', error);
     return sendJson(res, statusCode || 400, { detail: message });
+  } finally {
+    try {
+      await parser?.destroy();
+    } catch (cleanupError) {
+      console.warn('InvoiceFlow PDF parser cleanup failed:', cleanupError);
+    }
   }
 }
