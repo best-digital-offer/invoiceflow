@@ -442,7 +442,7 @@ class StorageService {
 
       // Invoice metadata should still be saveable when browser quota cannot fit embedded PDF data.
       const compactInvoices = invoices.map((invoice) => {
-        if (!invoice.fileDataUrl) return invoice;
+        if (!invoice.fileDataUrl || !invoice.fileDataUrl.startsWith('data:')) return invoice;
         const { fileDataUrl: _fileDataUrl, ...withoutPreview } = invoice;
         const previewNotice = 'PDF preview was not retained because browser storage is full. Re-upload the PDF to view it again.';
         return {
