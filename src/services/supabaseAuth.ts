@@ -168,12 +168,11 @@ export const supabaseAuth = {
 
   async resendConfirmationEmail(email: string): Promise<void> {
     config();
-    await authRequest('/resend', {
+    await authRequest('/resend?redirect_to=' + encodeURIComponent(window.location.origin), {
       method: 'POST',
       body: JSON.stringify({
         type: 'signup',
         email: email.trim(),
-        options: { emailRedirectTo: window.location.origin },
       }),
     });
   },
