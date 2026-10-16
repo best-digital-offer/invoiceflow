@@ -70,7 +70,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan }) => {
               <ul className="space-y-2.5 text-xs text-slate-600 border-t border-slate-100 pt-4">
                 <li className="flex items-center">
                   <Check className="w-4 h-4 text-emerald-600 mr-2 shrink-0" />
-                  <span>Up to 25 invoices / month</span>
+                  <span>Try sample and uploaded invoices (limits not enforced yet)</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="w-4 h-4 text-emerald-600 mr-2 shrink-0" />
@@ -84,9 +84,9 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan }) => {
                   <Check className="w-4 h-4 text-emerald-600 mr-2 shrink-0" />
                   <span>Standard CSV data export</span>
                 </li>
-                <li className="flex items-center text-slate-400">
-                  <span className="w-4 h-4 mr-2 text-center">&times;</span>
-                  <span>Spreadsheet reconciliation</span>
+                <li className="flex items-center">
+                  <Check className="w-4 h-4 text-emerald-600 mr-2 shrink-0" />
+                  <span>Spreadsheet reconciliation (CSV)</span>
                 </li>
               </ul>
             </div>
@@ -123,7 +123,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan }) => {
               <ul className="space-y-2.5 text-xs text-slate-600 border-t border-slate-100 pt-4">
                 <li className="flex items-center font-medium text-slate-900">
                   <Check className="w-4 h-4 text-emerald-600 mr-2 shrink-0" />
-                  <span>Unlimited invoice extraction</span>
+                  <span>Text-based PDF extraction (up to 4 MB per PDF)</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="w-4 h-4 text-emerald-600 mr-2 shrink-0" />
@@ -189,7 +189,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan }) => {
                 </li>
                 <li className="flex items-center">
                   <Check className="w-4 h-4 text-emerald-600 mr-2 shrink-0" />
-                  <span>Priority engine queue processing</span>
+                  <span>Same core extraction features as the monthly plan</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="w-4 h-4 text-emerald-600 mr-2 shrink-0" />
@@ -197,7 +197,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan }) => {
                 </li>
                 <li className="flex items-center">
                   <Check className="w-4 h-4 text-emerald-600 mr-2 shrink-0" />
-                  <span>Annual single invoice billing</span>
+                  <span>Annual billing option (checkout not active yet)</span>
                 </li>
               </ul>
             </div>
@@ -222,7 +222,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan }) => {
               Commercial Disclosure & Gateway Integration
             </p>
             <p className="leading-relaxed text-[11px]">
-              These prices represent initial proposed commercial terms for InvoiceFlow. In accordance with architectural security principles, payment gateways (e.g. Stripe Webhooks) are decoupled via server-side workflows. No simulated card transactions or fake activations are performed during prototype evaluation.
+              These are proposed prices. Paid checkout, automatic plan limits, and paid-plan entitlements are not active yet. Choosing a paid plan will not charge you or activate paid features until secure checkout is connected.
             </p>
           </div>
         </div>
@@ -244,7 +244,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan }) => {
             <div className="bg-white p-4 rounded-lg border border-slate-200 space-y-1">
               <h4 className="font-bold text-slate-800">Can I export my data at any time?</h4>
               <p className="text-slate-600 leading-relaxed">
-                Yes. Full CSV and JSON exports containing all extracted fields, line items, and audit flags are always accessible without lock-in.
+                CSV exports are available for invoice and reconciliation data. JSON export is not currently supported.
               </p>
             </div>
           </div>
