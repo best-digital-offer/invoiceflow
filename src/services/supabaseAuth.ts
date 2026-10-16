@@ -117,7 +117,10 @@ export const supabaseAuth = {
     companyName: string;
     plan: User['plan'];
   }): Promise<{ user: User | null; needsEmailConfirmation: boolean }> {
-    const result = await authRequest<{ user?: SupabaseUser; session?: SupabaseSession | null }>('/signup', {
+    const result = await authRequest<SupabaseUser & Partial<SupabaseSession> & {
+      user?: SupabaseUser;
+      session?: SupabaseSession | null;
+    }>('/signup', {
       method: 'POST',
       body: JSON.stringify({
         email: input.email.trim(),
@@ -130,9 +133,13 @@ export const supabaseAuth = {
       }),
     });
 
-    if (result.session?.access_token && result.user) {
-      saveSession({ ...result.session, user: result.user });
-      return { user: mapUser(result.user), needsEmailConfirmation: false };
+    // GoTrue returns either a direct user object (confirmation required) or a session
+    // object with a nested user (confirmation disabled).
+    const authUser = result.user ?? (result.id ? result as SupabaseUser : undefined);
+    const session = result.session ?? (result.access_token ? result as SupabaseSession : undefined);
+    if (session?.access_token && authUser) {
+      saveSession({ ...session, user: authUser });
+      return { user: mapUser(authUser), needsEmailConfirmation: false };
     }
 
     return { user: null, needsEmailConfirmation: true };
