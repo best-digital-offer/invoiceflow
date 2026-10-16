@@ -110,7 +110,7 @@ export const InvoiceUploader: React.FC<InvoiceUploaderProps> = ({
 
       try {
         // Read file data URL for PDF previewer
-        const fileDataUrl = await new Promise<string>((resolve) => {
+        let fileDataUrl = await new Promise<string>((resolve) => {
           const reader = new FileReader();
           reader.onload = () => resolve(reader.result as string);
           reader.onerror = () => resolve('');
@@ -135,6 +135,14 @@ export const InvoiceUploader: React.FC<InvoiceUploaderProps> = ({
         } catch (storageError) {
           const reason = storageError instanceof Error ? storageError.message : 'Unknown storage error';
           extractionWarnings.push(`PDF preview could not be saved to secure cloud storage: ${reason}`);
+        }
+        if (documentPath) {
+          try {
+            // Keep a small signed URL in the local cache instead of a large base64 PDF.
+            fileDataUrl = await supabaseData.getSignedPdfUrl(documentPath);
+          } catch {
+            extractionWarnings.push('The PDF was uploaded, but its preview link could not be created yet.');
+          }
         }
 
         const newInvoice: Invoice = {
