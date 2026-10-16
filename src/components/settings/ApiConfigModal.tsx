@@ -298,7 +298,7 @@ file: <PDF file>
                   <strong>Health Check Endpoint:</strong> <code className="font-mono bg-slate-100 px-1 py-0.5 rounded">GET /health</code> returning <code className="font-mono bg-slate-100 px-1 py-0.5 rounded">&#123;&quot;status&quot;: &quot;ok&quot;&#125;</code>.
                 </p>
                 <p>
-                  <strong>Zero-AI workflow:</strong> The API extracts PDF text and runs local OCR where available. InvoiceFlow applies deterministic parsing rules; fields must be reviewed. Groq is optional and is not used by the standard /extract workflow.
+                  <strong>Zero-AI workflow:</strong> The API extracts selectable text from PDFs and applies deterministic parsing rules; fields must be reviewed. Scanned-PDF OCR is not enabled in the current /extract workflow.
                 </p>
               </div>
             </div>
