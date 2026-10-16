@@ -461,9 +461,13 @@ class StorageService {
   getInvoices(userId?: string): Invoice[] {
     const uid = userId || this.getCurrentUser()?.id;
     if (!uid) return [];
-    const raw = localStorage.getItem(this.getInvoicesKey(uid));
+    const key = this.getInvoicesKey(uid);
+    const raw = localStorage.getItem(key);
     if (!raw) {
-      return this.ensureSeedDataForUser(uid);
+      if (uid === DEMO_USER.id) return this.ensureSeedDataForUser(uid);
+      // Never inject sample/demo invoices into a real user's workspace.
+      localStorage.setItem(key, JSON.stringify([]));
+      return [];
     }
     try {
       return JSON.parse(raw);
@@ -578,7 +582,7 @@ class StorageService {
 
   resetToDemoSeed(userId?: string) {
     const uid = userId || this.getCurrentUser()?.id;
-    if (!uid) return;
+    if (!uid || uid !== DEMO_USER.id) return;
     localStorage.removeItem(this.getInvoicesKey(uid));
     this.ensureSeedDataForUser(uid);
     this.notify();
