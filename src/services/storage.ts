@@ -11,7 +11,7 @@ const STORAGE_KEYS = {
 };
 
 const DEFAULT_CONFIG: BackendConfig = {
-  baseUrl: 'https://open-invoice-engine.onrender.com',
+  baseUrl: '/api',
   apiKey: '',
   timeoutMs: 30000,
   useLiveBackend: true,
@@ -573,14 +573,12 @@ class StorageService {
     if (!raw) return DEFAULT_CONFIG;
     try {
       const saved = JSON.parse(raw) as Partial<BackendConfig>;
-      // Migrate the original localhost/demo default to the hosted first-party API.
-      // Users can still switch back to the browser-only demo from the connector modal.
+      // Migrate older localhost or external-host configurations to the same-origin Vercel API.
       if (
-        saved.baseUrl === 'http://localhost:8000' &&
-        saved.useLiveBackend === false &&
+        (saved.baseUrl === 'http://localhost:8000' || saved.baseUrl.includes('onrender.com')) &&
         localStorage.getItem('invoiceflow_api_default_migrated') !== 'true'
       ) {
-        const migrated = { ...DEFAULT_CONFIG, ...saved, baseUrl: DEFAULT_CONFIG.baseUrl, useLiveBackend: true };
+        const migrated = { ...DEFAULT_CONFIG, ...saved, baseUrl: DEFAULT_CONFIG.baseUrl, apiKey: '', useLiveBackend: true };
         localStorage.setItem(STORAGE_KEYS.BACKEND_CONFIG, JSON.stringify(migrated));
         localStorage.setItem('invoiceflow_api_default_migrated', 'true');
         return migrated;
