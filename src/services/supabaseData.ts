@@ -133,7 +133,7 @@ export const supabaseData = {
     const { url } = settings();
     const signed = await request<{ signedURL: string }>(
       `/storage/v1/object/sign/${BUCKET}/${path.split('/').map(encodeURIComponent).join('/')}`,
-      { method: 'POST', body: JSON.stringify({ expiresIn: 3600 }) },
+      { method: 'POST', body: JSON.stringify({ expiresIn: 86400 }) },
     );
     return signed.signedURL.startsWith('http')
       ? signed.signedURL
