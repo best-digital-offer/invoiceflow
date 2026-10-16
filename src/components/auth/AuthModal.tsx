@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, Mail, Lock, User as UserIcon, Building2, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
 import { storageService } from '../../services/storage';
+import { supabaseAuth } from '../../services/supabaseAuth';
 import { User } from '../../types';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  initialMode?: 'login' | 'signup' | 'forgot_password';
+  initialMode?: 'login' | 'signup' | 'forgot_password' | 'update_password';
   onSuccess: (user: User) => void;
 }
 
@@ -16,7 +17,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   initialMode = 'login',
   onSuccess,
 }) => {
-  const [mode, setMode] = useState<'login' | 'signup' | 'forgot_password'>(initialMode);
+  const [mode, setMode] = useState<'login' | 'signup' | 'forgot_password' | 'update_password'>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -29,62 +30,76 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (!isOpen) return;
+    setMode(initialMode);
+    setError(null);
+    setNotice(null);
+    setPassword('');
+  }, [initialMode, isOpen]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setNotice(null);
 
-    if (!email || !email.includes('@')) {
+    if (mode !== 'update_password' && (!email || !email.includes('@'))) {
       setError('Please provide a valid email address.');
       return;
     }
+    if ((mode === 'login' || mode === 'signup' || mode === 'update_password') && password.length < 6) {
+      setError('Password must be at least 6 characters.');
+      return;
+    }
+    if (mode === 'signup' && !name.trim()) {
+      setError('Please enter your full name.');
+      return;
+    }
 
-    if (mode === 'login') {
-      if (!password || password.length < 6) {
-        setError('Password must be at least 6 characters.');
-        return;
-      }
-      setIsLoading(true);
-      setTimeout(() => {
-        setIsLoading(false);
-        // Login or create session
-        const user = storageService.signUp(name || email.split('@')[0], email, companyName || 'Accounting Dept', 'monthly');
+    setIsLoading(true);
+    try {
+      if (mode === 'login') {
+        const user = await supabaseAuth.signIn(email, password);
+        storageService.setCurrentUser(user);
         onSuccess(user);
         onClose();
-      }, 500);
-    } else if (mode === 'signup') {
-      if (!name) {
-        setError('Please enter your full name.');
-        return;
-      }
-      if (!password || password.length < 6) {
-        setError('Password must be at least 6 characters.');
-        return;
-      }
-      setIsLoading(true);
-      setTimeout(() => {
-        setIsLoading(false);
-        const user = storageService.signUp(name, email, companyName, plan);
+      } else if (mode === 'signup') {
+        const result = await supabaseAuth.signUp({ name, email, password, companyName, plan });
+        if (result.user) {
+          storageService.setCurrentUser(result.user);
+          onSuccess(result.user);
+          onClose();
+        } else if (result.needsEmailConfirmation) {
+          setNotice('Account created. Check your email for the Supabase confirmation link, then sign in.');
+          setMode('login');
+          setPassword('');
+        }
+      } else if (mode === 'forgot_password') {
+        await supabaseAuth.requestPasswordReset(email);
+        setNotice('If an account exists for this address, a password reset email has been requested. Check your inbox and spam folder.');
+      } else if (mode === 'update_password') {
+        const user = await supabaseAuth.updatePassword(password);
+        storageService.setCurrentUser(user);
+        setNotice('Password updated successfully. You are now signed in.');
         onSuccess(user);
         onClose();
-      }, 500);
-    } else if (mode === 'forgot_password') {
-      setIsLoading(true);
-      setTimeout(() => {
-        setIsLoading(false);
-        setNotice(`A password reset link with verification instructions has been sent to ${email}. Check your inbox.`);
-      }, 600);
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Authentication failed. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleDemoLogin = () => {
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
       const demoUser = storageService.loginAsDemoUser();
       onSuccess(demoUser);
       onClose();
-    }, 300);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -98,11 +113,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               {mode === 'login' && 'Log In to InvoiceFlow'}
               {mode === 'signup' && 'Create Your Free Account'}
               {mode === 'forgot_password' && 'Reset Your Password'}
+              {mode === 'update_password' && 'Choose a New Password'}
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
               {mode === 'login' && 'Access your isolated invoices and reconciliation data'}
               {mode === 'signup' && 'Start extracting and verifying invoices without paid AI'}
               {mode === 'forgot_password' && 'Enter your email to receive a password reset link'}
+              {mode === 'update_password' && 'Set a new password for your account'}
             </p>
           </div>
           <button
@@ -181,28 +198,30 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </div>
           )}
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Work Email Address
-            </label>
-            <div className="relative">
-              <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="name@company.com"
-                className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
+          {mode !== 'update_password' && (
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Work Email Address
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="name@company.com"
+                  className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           {mode !== 'forgot_password' && (
             <div>
               <div className="flex justify-between items-center mb-1">
                 <label className="block text-xs font-semibold text-slate-700">
-                  Password
+                  {mode === 'update_password' ? 'New Password' : 'Password'}
                 </label>
                 {mode === 'login' && (
                   <button
@@ -221,7 +240,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   required
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder={mode === 'update_password' ? 'Enter a new password' : '••••••••'}
                   className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -292,7 +311,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold text-sm rounded-lg shadow-sm transition-colors focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
           >
             {isLoading ? 'Processing...' : (
-              mode === 'login' ? 'Sign In' : mode === 'signup' ? 'Create Account' : 'Send Reset Link'
+              mode === 'login' ? 'Sign In' : mode === 'signup' ? 'Create Account' : mode === 'update_password' ? 'Update Password' : 'Send Reset Link'
             )}
           </button>
 
@@ -322,6 +341,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   Log in
                 </button>
               </p>
+            )}
+
+            {mode === 'update_password' && (
+              <p>Password reset link verified. Choose a new password to continue.</p>
             )}
 
             {mode === 'forgot_password' && (
