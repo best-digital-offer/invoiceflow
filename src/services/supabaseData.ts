@@ -41,6 +41,29 @@ function withoutEmbeddedPdf(invoice: Invoice): Invoice {
 }
 
 export const supabaseData = {
+  async fetchProfile(userId: string): Promise<Partial<User> | null> {
+    if (!isSupabaseUserId(userId)) return null;
+    const rows = await request<Array<{
+      full_name: string;
+      company_name: string;
+      role: string;
+      plan: User['plan'];
+      created_at: string;
+    }>>(
+      `/rest/v1/profiles?select=full_name,company_name,role,plan,created_at&id=eq.${encodeURIComponent(userId)}&limit=1`,
+    );
+    const profile = rows?.[0];
+    if (!profile) return null;
+    return {
+      id: userId,
+      name: profile.full_name,
+      companyName: profile.company_name,
+      role: profile.role,
+      plan: profile.plan,
+      createdAt: profile.created_at,
+    };
+  },
+
   async upsertProfile(user: User): Promise<void> {
     if (!isSupabaseUserId(user.id)) return;
     await request('/rest/v1/profiles?on_conflict=id', {
