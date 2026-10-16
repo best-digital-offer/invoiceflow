@@ -144,7 +144,7 @@ export const InvoiceReviewWorkspace: React.FC<InvoiceReviewWorkspaceProps> = ({
     };
     onSave(toSave);
     setHasUnsavedChanges(false);
-    setSaveSuccessNotice('Changes saved to isolated user storage.');
+    setSaveSuccessNotice('Changes saved locally and queued for cloud sync.');
     setTimeout(() => setSaveSuccessNotice(null), 3000);
   };
 
@@ -159,7 +159,7 @@ export const InvoiceReviewWorkspace: React.FC<InvoiceReviewWorkspaceProps> = ({
     onSave(toSave);
     setFormData(toSave);
     setHasUnsavedChanges(false);
-    setSaveSuccessNotice('Invoice marked as Reviewed and ready for spreadsheet export!');
+    setSaveSuccessNotice('Invoice marked as Reviewed. Changes are saved locally and queued for cloud sync.');
     setTimeout(() => setSaveSuccessNotice(null), 3000);
   };
 
