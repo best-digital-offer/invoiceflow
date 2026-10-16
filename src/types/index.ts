@@ -1,5 +1,15 @@
 export type Currency = 'USD' | 'EUR' | 'GBP' | 'CAD' | 'AUD' | 'JPY' | 'CHF' | 'INR';
 
+export type TaxSystem = 'sales_tax' | 'vat' | 'gst' | 'none' | 'custom';
+export interface UserPreferences {
+  defaultCurrency: Currency;
+  taxCountry: string;
+  taxRegion: string;
+  taxSystem: TaxSystem;
+  taxLabel: string;
+  defaultTaxRate: number;
+}
+
 export type InvoiceStatus = 'draft' | 'awaiting_review' | 'reviewed' | 'exported';
 export type ValidationStatus = 'validated' | 'warnings' | 'error';
 export type ExtractionMethod = 'deterministic_browser_engine' | 'open_invoice_engine_api' | 'demo_sample_record';
@@ -10,7 +20,7 @@ export interface InvoiceLineItem {
   description: string;
   quantity: number;
   unitPrice: number;
-  taxRate?: number; // e.g., 0.10 for 10%
+  taxRate?: number;
   taxAmount?: number;
   lineTotal: number;
 }
@@ -40,47 +50,35 @@ export interface Invoice {
   originalFilename: string;
   fileSize: number;
   fileType: string;
-  fileDataUrl?: string; // Blob, signed URL, or base64 data for document viewer
-  documentPath?: string; // Private Supabase Storage path for the original PDF
+  fileDataUrl?: string;
+  documentPath?: string;
   sampleDocType?: 'acme_cloud' | 'global_logistics' | 'apex_hardware' | 'nordic_design' | 'metropolis_legal';
-  
-  // Supplier / Vendor
   supplierName: string;
   supplierAddress: string;
-  supplierTaxId: string; // Tax ID / VAT / EIN
+  supplierTaxId: string;
   supplierEmail?: string;
   supplierPhone?: string;
-
-  // Metadata
   invoiceNumber: string;
-  invoiceDate: string; // YYYY-MM-DD
-  dueDate: string;     // YYYY-MM-DD
+  invoiceDate: string;
+  dueDate: string;
   purchaseOrderNumber: string;
   customerName: string;
   customerAddress?: string;
   customerTaxId?: string;
-  paymentTerms: string; // e.g. "Net 30", "Due upon receipt"
-
-  // Financials
+  paymentTerms: string;
   currency: Currency;
   subtotal: number;
   discount: number;
   taxAmount: number;
   shippingAmount: number;
   totalAmount: number;
-
-  // Items
   lineItems: InvoiceLineItem[];
-
-  // Extraction & Review state
   extractionMethod: ExtractionMethod;
   extractionStatus: 'processing' | 'completed' | 'failed';
   validationResult: ValidationResult;
   reviewStatus: InvoiceStatus;
   isDuplicateWarning?: boolean;
   notes?: string;
-
-  // Audit timestamps
   createdAt: string;
   updatedAt: string;
   reviewedAt?: string;
@@ -103,7 +101,7 @@ export interface BackendConfig {
   timeoutMs: number;
   useLiveBackend: boolean;
   autoValidateOnExtract: boolean;
-  roundingTolerance: number; // default $0.02
+  roundingTolerance: number;
 }
 
 export interface UsageRecord {
@@ -116,7 +114,6 @@ export interface UsageRecord {
   timestamp: string;
 }
 
-// Reconciliation types
 export interface SpreadsheetColumnMapping {
   invoiceNumberCol: string;
   supplierCol: string;
@@ -126,33 +123,27 @@ export interface SpreadsheetColumnMapping {
   statusCol?: string;
 }
 
-export type ReconciliationMatchStatus = 
-  | 'exact_match' 
-  | 'probable_match' 
-  | 'amount_mismatch' 
-  | 'unmatched_spreadsheet' 
+export type ReconciliationMatchStatus =
+  | 'exact_match'
+  | 'probable_match'
+  | 'amount_mismatch'
+  | 'unmatched_spreadsheet'
   | 'unmatched_invoice';
 
 export interface ReconciliationRowComparison {
   id: string;
   spreadsheetRowIndex: number;
   rawSpreadsheetData: Record<string, string>;
-  
-  // Normalized spreadsheet fields
   spreadsheetInvoiceNumber: string;
   spreadsheetSupplier: string;
   spreadsheetDate: string;
   spreadsheetAmount: number;
-
-  // Matched invoice (if any)
   matchedInvoiceId?: string;
   matchedInvoice?: Invoice;
-
-  // Match details
   status: ReconciliationMatchStatus;
-  confidenceScore: number; // 0 to 100
+  confidenceScore: number;
   matchReasons: string[];
-  amountVariance: number; // spreadsheetAmount - invoiceTotal
+  amountVariance: number;
   userConfirmed: boolean;
   userRejected: boolean;
 }
