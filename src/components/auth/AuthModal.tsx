@@ -22,7 +22,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [companyName, setCompanyName] = useState('');
-  const [plan, setPlan] = useState<'free_trial' | 'monthly' | 'annual'>('free_trial');
   
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -64,7 +63,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         onSuccess(user);
         onClose();
       } else if (mode === 'signup') {
-        const result = await supabaseAuth.signUp({ name, email, password, companyName, plan });
+        const result = await supabaseAuth.signUp({ name, email, password, companyName, plan: 'free_trial' });
         if (result.user) {
           storageService.setCurrentUser(result.user);
           onSuccess(result.user);
@@ -266,43 +265,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           )}
 
           {mode === 'signup' && (
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Plan Selection
-              </label>
-              <div className="grid grid-cols-3 gap-2 text-xs">
-                <button
-                  type="button"
-                  onClick={() => setPlan('free_trial')}
-                  className={`py-2 px-2 rounded border text-center font-medium ${
-                    plan === 'free_trial' ? 'border-blue-600 bg-blue-50 text-blue-900' : 'border-slate-200 text-slate-600'
-                  }`}
-                >
-                  <div>Free Trial</div>
-                  <div className="text-[10px] text-slate-500">No card req.</div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPlan('monthly')}
-                  className={`py-2 px-2 rounded border text-center font-medium ${
-                    plan === 'monthly' ? 'border-blue-600 bg-blue-50 text-blue-900' : 'border-slate-200 text-slate-600'
-                  }`}
-                >
-                  <div>Monthly</div>
-                  <div className="text-[10px] text-slate-500">$10/month</div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPlan('annual')}
-                  className={`py-2 px-2 rounded border text-center font-medium ${
-                    plan === 'annual' ? 'border-blue-600 bg-blue-50 text-blue-900' : 'border-slate-200 text-slate-600'
-                  }`}
-                >
-                  <div>Annual</div>
-                  <div className="text-[10px] text-emerald-600 font-semibold">$75/yr (Save)</div>
-                </button>
-              </div>
-            </div>
+            <p className="text-[11px] text-slate-500">Your account starts on the Free Trial. Paid plans will only activate after secure checkout becomes available.</p>
           )}
 
           <button
