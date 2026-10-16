@@ -197,7 +197,6 @@ export class InvoiceExtractionService {
     let currency: Currency = 'USD';
     if (/\bINR\b/i.test(text) || text.includes('₹')) currency = 'INR';
     else if (text.includes('€') || /\bEUR\b/i.test(text)) currency = 'EUR';
-    if (text.includes('€') || /\bEUR\b/i.test(text)) currency = 'EUR';
     else if (text.includes('£') || /\bGBP\b/i.test(text)) currency = 'GBP';
     else if (/\bCAD\b/i.test(text)) currency = 'CAD';
     else if (/\bAUD\b/i.test(text)) currency = 'AUD';
@@ -260,9 +259,6 @@ export class InvoiceExtractionService {
     const taxAmount = /\b(?:CGST|SGST|IGST)\b/i.test(text)
       ? (findAmount([/CGST\s*\([^)]*\)\s*[$€£¥₹]?\s*([\d,]+\.\d{2})/i]) + findAmount([/SGST\s*\([^)]*\)\s*[$€£¥₹]?\s*([\d,]+\.\d{2})/i]) + findAmount([/IGST\s*\([^)]*\)\s*[$€£¥₹]?\s*([\d,]+\.\d{2})/i]))
       : (findAmount([/(?:total\s+tax|tax\s+amount|tax|vat|mwst|sales\s*tax|gst)\s*[:.\s]?\s*[$€£¥₹]?\s*([\d,]+\.\d{2})/i]) || 0);
-      /(?:tax|vat|mwst|sales\s*tax|gst)\s*[:.\s]?\s*[$€£¥]?\s*([\d,]+\.\d{2})/i,
-    ]) || 0;
-
     const shippingAmount = findAmount([
       /(?:shipping|freight|handling|delivery|porto)\s*[:.\s]?\s*[$€£¥]?\s*([\d,]+\.\d{2})/i,
     ]) || 0;
@@ -290,7 +286,7 @@ export class InvoiceExtractionService {
       invoiceDate,
       dueDate,
       purchaseOrderNumber,
-      customerName: (() => { const billTo = lines.findIndex(line => /^BILL\\s+TO$/i.test(line)); return billTo >= 0 ? (lines.slice(billTo + 1).find(line => !/^(payment terms|po number|gstin:|currency:)/i.test(line)) || '') : ''; })(),
+      customerName: (() => { const billTo = lines.findIndex(line => /^BILL\s+TO$/i.test(line)); return billTo >= 0 ? (lines.slice(billTo + 1).find(line => !/^(payment terms|po number|gstin:|currency:)/i.test(line)) || '') : ''; })(),
       paymentTerms: '',
       currency,
       subtotal,
