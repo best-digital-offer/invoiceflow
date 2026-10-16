@@ -295,7 +295,7 @@ file: <PDF file>
 
               <div className="text-slate-600 text-xs space-y-2">
                 <p>
-                  <strong>Health Check Endpoint:</strong> <code className="font-mono bg-slate-100 px-1 py-0.5 rounded">GET /health</code> returning <code className="font-mono bg-slate-100 px-1 py-0.5 rounded">&#123;&quot;status&quot;: &quot;ok&quot;&#125;</code>.
+                  <strong>Health Check Endpoint:</strong> <code className="font-mono bg-slate-100 px-1 py-0.5 rounded">GET /health</code> returning <code className="font-mono bg-slate-100 px-1 py-0.5 rounded">&#123;&quot;ok&quot;: true&#125;</code>.
                 </p>
                 <p>
                   <strong>Zero-AI workflow:</strong> The API extracts selectable text from PDFs and applies deterministic parsing rules; fields must be reviewed. Scanned-PDF OCR is not enabled in the current /extract workflow.
