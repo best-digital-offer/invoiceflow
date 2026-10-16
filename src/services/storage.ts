@@ -11,10 +11,10 @@ const STORAGE_KEYS = {
 };
 
 const DEFAULT_CONFIG: BackendConfig = {
-  baseUrl: 'http://localhost:8000',
+  baseUrl: 'https://open-invoice-engine.onrender.com',
   apiKey: '',
-  timeoutMs: 15000,
-  useLiveBackend: false, // Default to transparent in-browser demo/fallback mode
+  timeoutMs: 30000,
+  useLiveBackend: true,
   autoValidateOnExtract: true,
   roundingTolerance: 0.02,
 };
@@ -572,7 +572,15 @@ class StorageService {
     const raw = localStorage.getItem(STORAGE_KEYS.BACKEND_CONFIG);
     if (!raw) return DEFAULT_CONFIG;
     try {
-      return { ...DEFAULT_CONFIG, ...JSON.parse(raw) };
+      const saved = JSON.parse(raw) as Partial<BackendConfig>;
+      // Migrate the original localhost/demo default to the hosted first-party API.
+      // Users can still switch back to the browser-only demo from the connector modal.
+      if (saved.baseUrl === 'http://localhost:8000' && saved.useLiveBackend === false) {
+        const migrated = { ...DEFAULT_CONFIG, ...saved, baseUrl: DEFAULT_CONFIG.baseUrl, useLiveBackend: true };
+        localStorage.setItem(STORAGE_KEYS.BACKEND_CONFIG, JSON.stringify(migrated));
+        return migrated;
+      }
+      return { ...DEFAULT_CONFIG, ...saved };
     } catch {
       return DEFAULT_CONFIG;
     }
