@@ -1,5 +1,8 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import pdfParse from 'pdf-parse';
+// Import the parser implementation directly. The package root index.js runs a
+// bundled-incompatible debug self-test when Vercel's bundler removes module.parent,
+// attempting to read ./test/data/05-versions-space.pdf at runtime.
+import pdfParse from 'pdf-parse/lib/pdf-parse.js';
 
 export const config = {
   api: {
@@ -74,8 +77,6 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       });
     }
 
-    // pdf-parse extracts all pages in one pass. Keep the combined text intact rather
-    // than inventing page boundaries that the parser did not return.
     const pages = [{
       page: 1,
       text: combinedText,
@@ -94,6 +95,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
   } catch (error) {
     const statusCode = (error as Error & { statusCode?: number }).statusCode;
     const message = error instanceof Error ? error.message : 'PDF extraction failed.';
+    console.error('InvoiceFlow PDF extraction failed:', error);
     return sendJson(res, statusCode || 400, { detail: message });
   }
 }
