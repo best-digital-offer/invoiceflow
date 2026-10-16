@@ -49,6 +49,8 @@ export default function App() {
     try {
       await supabaseData.upsertProfile(user);
       const localInvoices = storageService.getInvoices(user.id);
+      const localRuns = storageService.getReconciliations(user.id);
+      const localUsage = storageService.getUsageRecords(user.id);
       const [remoteInvoices, remoteRuns, remoteUsage] = await Promise.all([
         supabaseData.fetchInvoices(user.id),
         supabaseData.fetchReconciliations(user.id),
@@ -58,13 +60,26 @@ export default function App() {
       if (remoteInvoices.length > 0) {
         storageService.replaceInvoicesForUser(user.id, remoteInvoices);
       } else if (localInvoices.length > 0) {
-        // One-time migration for locally saved records created before cloud persistence was enabled.
         await Promise.all(localInvoices.map(invoice => supabaseData.upsertInvoice(invoice)));
       } else {
         storageService.replaceInvoicesForUser(user.id, []);
       }
-      storageService.replaceReconciliationsForUser(user.id, remoteRuns);
-      storageService.replaceUsageRecordsForUser(user.id, remoteUsage);
+
+      if (remoteRuns.length > 0) {
+        storageService.replaceReconciliationsForUser(user.id, remoteRuns);
+      } else if (localRuns.length > 0) {
+        await Promise.all(localRuns.map(run => supabaseData.upsertReconciliation(run)));
+      } else {
+        storageService.replaceReconciliationsForUser(user.id, []);
+      }
+
+      if (remoteUsage.length > 0) {
+        storageService.replaceUsageRecordsForUser(user.id, remoteUsage);
+      } else if (localUsage.length > 0) {
+        await Promise.all(localUsage.map(record => supabaseData.upsertUsageRecord(record)));
+      } else {
+        storageService.replaceUsageRecordsForUser(user.id, []);
+      }
     } catch (error) {
       console.warn('InvoiceFlow cloud sync is temporarily unavailable; keeping the local cache.', error);
     }
