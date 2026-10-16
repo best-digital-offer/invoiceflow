@@ -287,7 +287,7 @@ export const InvoiceUploader: React.FC<InvoiceUploaderProps> = ({
             <p className="text-[11px] opacity-80 mt-0.5">
               {backendConfig.useLiveBackend
                 ? `Invoice text will be sent to the configured Vercel extraction endpoint at ${backendConfig.baseUrl}`
-                : 'Zero-cost client-side parsing. PDF text streams are extracted in-browser with mathematical rule verification. No data leaves your machine.'}
+                : 'PDF text is parsed in your browser; signed-in invoice records and source PDFs are also stored in your private Supabase account.'}
             </p>
           </div>
         </div>
