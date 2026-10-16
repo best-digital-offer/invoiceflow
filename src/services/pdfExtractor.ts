@@ -53,14 +53,15 @@ export class InvoiceExtractionService {
     config: BackendConfig,
     onProgress?: ExtractionProgressCallback
   ): Promise<ExtractionResult> {
-    const formData = new FormData();
-    formData.append('file', file);
+    if (file.size > 4 * 1024 * 1024) {
+      throw new Error('This Vercel extraction endpoint currently supports PDF files up to 4 MB.');
+    }
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), config.timeoutMs || 30000);
-    onProgress?.('extracting_text', 50, 'Sending PDF to your Open Invoice Engine for text extraction and local OCR...');
+    onProgress?.('extracting_text', 50, 'Extracting selectable PDF text through the Vercel API...');
 
-    const headers: Record<string, string> = {};
+    const headers: Record<string, string> = { 'Content-Type': 'application/pdf' };
     if (config.apiKey) {
       headers['Authorization'] = `Bearer ${config.apiKey}`;
       headers['X-API-Key'] = config.apiKey;
@@ -69,7 +70,7 @@ export class InvoiceExtractionService {
     const endpoint = `${config.baseUrl.replace(/\/+$/, '')}/extract`;
     let response: Response;
     try {
-      response = await fetch(endpoint, { method: 'POST', headers, body: formData, signal: controller.signal });
+      response = await fetch(endpoint, { method: 'POST', headers, body: file, signal: controller.signal });
     } finally {
       clearTimeout(timeoutId);
     }
@@ -89,7 +90,7 @@ export class InvoiceExtractionService {
     const data = await response.json();
     const rawText = String(data.combined_text || data.raw_text || '');
     if (!rawText.trim()) {
-      throw new Error('The API returned no readable invoice text. Check that OCR is installed and enabled on the backend for scanned PDFs.');
+      throw new Error('The API returned no selectable text. This may be a scanned PDF; OCR is not enabled in this Vercel endpoint yet.');
     }
 
     // The /extract endpoint returns extracted text, not structured fields.
