@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { BackendConfig, Invoice } from '../../types';
 import { InvoiceExtractionService } from '../../services/pdfExtractor';
+import { DeterministicValidationEngine } from '../../services/validationEngine';
 import { storageService, INITIAL_DEMO_INVOICES } from '../../services/storage';
 
 interface FileUploadTask {
@@ -132,15 +133,15 @@ export const InvoiceUploader: React.FC<InvoiceUploaderProps> = ({
           fileSize: task.file.size,
           fileType: task.file.type || 'application/pdf',
           fileDataUrl,
-          supplierName: extraction.invoice.supplierName || 'Unknown Supplier',
+          supplierName: extraction.invoice.supplierName || '',
           supplierAddress: extraction.invoice.supplierAddress || '',
           supplierTaxId: extraction.invoice.supplierTaxId || '',
-          invoiceNumber: extraction.invoice.invoiceNumber || `INV-${Date.now().toString().slice(-6)}`,
-          invoiceDate: extraction.invoice.invoiceDate || new Date().toISOString().split('T')[0],
-          dueDate: extraction.invoice.dueDate || new Date().toISOString().split('T')[0],
+          invoiceNumber: extraction.invoice.invoiceNumber || '',
+          invoiceDate: extraction.invoice.invoiceDate || '',
+          dueDate: extraction.invoice.dueDate || '',
           purchaseOrderNumber: extraction.invoice.purchaseOrderNumber || '',
-          customerName: extraction.invoice.customerName || 'Accounts Payable',
-          paymentTerms: extraction.invoice.paymentTerms || 'Net 30',
+          customerName: extraction.invoice.customerName || '',
+          paymentTerms: extraction.invoice.paymentTerms || '',
           currency: extraction.invoice.currency || 'USD',
           subtotal: extraction.invoice.subtotal || 0,
           discount: extraction.invoice.discount || 0,
@@ -152,15 +153,22 @@ export const InvoiceUploader: React.FC<InvoiceUploaderProps> = ({
           extractionStatus: 'completed',
           reviewStatus: 'awaiting_review',
           notes: extraction.warnings.length > 0 ? extraction.warnings.join(' | ') : undefined,
-          validationResult: {
-            status: 'validated',
-            isValid: true,
-            violations: [],
-            calculatedSubtotal: extraction.invoice.subtotal || 0,
-            calculatedLineItemsSum: extraction.invoice.subtotal || 0,
-            calculatedExpectedTotal: extraction.invoice.totalAmount || 0,
-            differenceFromReportedTotal: 0,
-          },
+          validationResult: DeterministicValidationEngine.validate({
+            ...extraction.invoice,
+            supplierName: extraction.invoice.supplierName || '',
+            invoiceNumber: extraction.invoice.invoiceNumber || '',
+            invoiceDate: extraction.invoice.invoiceDate || '',
+            currency: extraction.invoice.currency || 'USD',
+            subtotal: extraction.invoice.subtotal || 0,
+            discount: extraction.invoice.discount || 0,
+            taxAmount: extraction.invoice.taxAmount || 0,
+            shippingAmount: extraction.invoice.shippingAmount || 0,
+            totalAmount: extraction.invoice.totalAmount || 0,
+            lineItems: extraction.invoice.lineItems || [],
+          }, {
+            roundingTolerance: backendConfig.roundingTolerance,
+            existingInvoices,
+          }),
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
