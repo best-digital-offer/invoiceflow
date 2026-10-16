@@ -226,12 +226,16 @@ export default function App() {
           {currentView === 'pricing' && (
             <PricingPage
               onSelectPlan={(plan) => {
-                if (currentUser) {
-                  storageService.updateUserProfile({ plan });
-                  alert(`Plan changed to: ${plan.replace('_', ' ').toUpperCase()}`);
-                } else {
-                  handleOpenAuth('signup');
+                if (plan === 'free_trial') {
+                  if (currentUser) {
+                    storageService.updateUserProfile({ plan: 'free_trial' });
+                    alert('Free Trial selected.');
+                  } else {
+                    handleOpenAuth('signup');
+                  }
+                  return;
                 }
+                alert('Paid checkout is not available yet. No paid plan has been activated or charged.');
               }}
             />
           )}
