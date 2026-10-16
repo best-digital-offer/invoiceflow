@@ -40,7 +40,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
 
   const handleTestConnection = async () => {
     setTestStatus({ running: true });
-    const res = await InvoiceExtractionService.testBackendConnection(config.baseUrl, config.apiKey);
+    const res = await InvoiceExtractionService.testBackendConnection('/api');
     setTestStatus({
       running: false,
       success: res.success,
@@ -51,14 +51,14 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const updated = storageService.saveBackendConfig(config);
+    const updated = storageService.saveBackendConfig({ ...config, baseUrl: '/api', apiKey: '' });
     onSave(updated);
     onClose();
   };
 
   const handleResetToDemo = () => {
     const updated = storageService.saveBackendConfig({
-      baseUrl: 'http://localhost:8000',
+      baseUrl: '/api',
       apiKey: '',
       useLiveBackend: false,
       roundingTolerance: 0.02,
@@ -82,7 +82,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
                 Extraction Engine & API Connector
               </h3>
               <p className="text-xs text-slate-500">
-                Configure open-invoice-engine Python FastAPI backend or use in-browser parser.
+                Check the built-in Vercel extraction API or use local parsing.
               </p>
             </div>
           </div>
@@ -126,36 +126,15 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
           {activeTab === 'settings' ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               
-              {/* Repository reference */}
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-start justify-between">
-                <div>
-                  <div className="font-semibold text-blue-900">
-                    Planned Backend Service: open-invoice-engine
-                  </div>
-                  <p className="text-blue-700 mt-0.5 leading-relaxed">
-                    Designed around the open-source repository at{' '}
-                    <a
-                      href="https://github.com/best-digital-offer/open-invoice-engine"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="underline font-mono inline-flex items-center font-bold"
-                    >
-                      github.com/best-digital-offer/open-invoice-engine
-                      <ExternalLink className="w-3 h-3 ml-1" />
-                    </a>
-                  </p>
-                </div>
-              </div>
-
               {/* Engine Mode Toggle */}
               <div className="border border-slate-200 rounded-lg p-4 bg-slate-50 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="font-bold text-slate-900">
-                      Live Backend API Routing
+                      Vercel API Routing
                     </div>
                     <p className="text-slate-500 text-[11px]">
-                      When enabled, files are sent via multipart POST to your deployed FastAPI engine.
+                      When enabled, selectable PDF text is sent to InvoiceFlow's built-in Vercel API.
                     </p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
@@ -176,29 +155,26 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
                 )}
               </div>
 
-              {/* API Base URL */}
+              {/* Fixed same-origin Vercel API */}
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">
-                  API Base URL
+                  Extraction API
                 </label>
                 <div className="flex space-x-2">
-                  <input
-                    type="url"
-                    value={config.baseUrl}
-                    onChange={e => setConfig(prev => ({ ...prev, baseUrl: e.target.value }))}
-                    placeholder="http://localhost:8000"
-                    className="flex-1 px-3 py-2 rounded border border-slate-300 font-mono text-xs focus:ring-1 focus:ring-blue-500"
-                  />
+                  <div className="flex-1 px-3 py-2 rounded border border-slate-200 bg-slate-50 font-mono text-xs text-slate-700">
+                    /api/extract
+                  </div>
                   <button
                     type="button"
                     onClick={handleTestConnection}
-                    disabled={testStatus.running || !config.baseUrl}
+                    disabled={testStatus.running}
                     className="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded font-medium text-xs flex items-center space-x-1 shrink-0 transition-colors disabled:opacity-50"
                   >
                     <Activity className={`w-3.5 h-3.5 ${testStatus.running ? 'animate-spin' : ''}`} />
                     <span>{testStatus.running ? 'Testing...' : 'Test Connection'}</span>
                   </button>
                 </div>
+                <p className="text-[10px] text-slate-500 mt-1">Fixed to this Vercel deployment. No external backend URL or browser-stored API secret is used.</p>
               </div>
 
               {/* Test Status feedback */}
@@ -221,23 +197,6 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
                   </div>
                 </div>
               )}
-
-              {/* API Key (Optional) */}
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  API Key / Bearer Secret (Optional)
-                </label>
-                <div className="relative">
-                  <Key className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                  <input
-                    type="password"
-                    value={config.apiKey}
-                    onChange={e => setConfig(prev => ({ ...prev, apiKey: e.target.value }))}
-                    placeholder="Bearer token or open-invoice-engine secret"
-                    className="w-full pl-9 pr-3 py-2 rounded border border-slate-300 font-mono text-xs focus:ring-1 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
 
               {/* Rounding Tolerance */}
               <div className="grid grid-cols-2 gap-3">
@@ -264,12 +223,12 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
                   <input
                     type="number"
                     min="5"
-                    max="120"
+                    max="30"
                     value={Math.round(config.timeoutMs / 1000)}
-                    onChange={e => setConfig(prev => ({ ...prev, timeoutMs: (parseInt(e.target.value) || 15) * 1000 }))}
+                    onChange={e => setConfig(prev => ({ ...prev, timeoutMs: Math.min(30000, Math.max(5000, parseInt(e.target.value) || 15)) * 1000 }))}
                     className="w-full px-3 py-2 rounded border border-slate-300 font-mono text-xs"
                   />
-                  <p className="text-[10px] text-slate-500 mt-0.5">Asynchronous timeout for large batches</p>
+                  <p className="text-[10px] text-slate-500 mt-0.5">Vercel function request timeout</p>
                 </div>
               </div>
 
