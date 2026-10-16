@@ -72,10 +72,13 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         const page = await pdf.getPage(pageNumber);
         const textContent = await page.getTextContent();
         const pageText = textContent.items
-          .map((item) => ('str' in item && typeof item.str === 'string' ? item.str : ''))
-          .filter(Boolean)
-          .join(' ')
-          .replace(/\s+/g, ' ')
+          .map((item) => {
+            if (!('str' in item) || typeof item.str !== 'string' || !item.str) return '';
+            return item.hasEOL ? item.str + '\n' : item.str + ' ';
+          })
+          .join('')
+          .replace(/[ \t]+/g, ' ')
+          .replace(/ *\n */g, '\n')
           .trim();
         pages.push({
           page: pageNumber,
