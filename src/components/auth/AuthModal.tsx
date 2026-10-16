@@ -27,8 +27,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [notice, setNotice] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  if (!isOpen) return null;
-
   useEffect(() => {
     if (!isOpen) return;
     setMode(initialMode);
@@ -36,6 +34,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setNotice(null);
     setPassword('');
   }, [initialMode, isOpen]);
+
+  if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
