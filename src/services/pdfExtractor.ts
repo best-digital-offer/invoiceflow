@@ -33,12 +33,9 @@ export class InvoiceExtractionService {
         const result = await this.callBackendApi(file, config, onProgress);
         return result;
       } catch (err: unknown) {
-        console.warn('Backend extraction failed, falling back to deterministic browser engine:', err);
         const errMsg = err instanceof Error ? err.message : 'Unknown backend error';
-        // Note: As specified in requirement #6, fall back gracefully but inform user
-        const fallback = await this.extractInBrowser(file, onProgress);
-        fallback.warnings.push(`Backend API (${config.baseUrl}) error: ${errMsg}. Switched to local in-browser deterministic parser.`);
-        return fallback;
+        // Never disguise a failed live API request as a successful local extraction.
+        throw new Error(`Invoice API request failed: ${errMsg}`);
       }
     }
 
@@ -58,13 +55,10 @@ export class InvoiceExtractionService {
   ): Promise<ExtractionResult> {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('extract_line_items', 'true');
-    formData.append('currency_hint', 'auto');
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), config.timeoutMs || 15000);
-
-    onProgress?.('extracting_text', 50, 'Backend open-invoice-engine is processing OCR and structured tokens...');
+    const timeoutId = setTimeout(() => controller.abort(), config.timeoutMs || 30000);
+    onProgress?.('extracting_text', 50, 'Sending PDF to your Open Invoice Engine for text extraction and local OCR...');
 
     const headers: Record<string, string> = {};
     if (config.apiKey) {
@@ -72,59 +66,44 @@ export class InvoiceExtractionService {
       headers['X-API-Key'] = config.apiKey;
     }
 
-    const endpoint = `${config.baseUrl.replace(/\/+$/, '')}/extract`;
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers,
-      body: formData,
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    const endpoint = `${config.baseUrl.replace(/\\/+$/, '')}/extract`;
+    let response: Response;
+    try {
+      response = await fetch(endpoint, { method: 'POST', headers, body: formData, signal: controller.signal });
+    } finally {
+      clearTimeout(timeoutId);
     }
 
-    onProgress?.('parsing_fields', 80, 'Mapping backend JSON payload to Invoice schema...');
+    if (!response.ok) {
+      let detail = response.statusText;
+      try {
+        const errorBody = await response.json();
+        detail = String(errorBody.detail || errorBody.message || detail);
+      } catch {
+        // Keep the HTTP status text when the response is not JSON.
+      }
+      throw new Error(`HTTP ${response.status}: ${detail}`);
+    }
+
+    onProgress?.('parsing_fields', 80, 'Parsing text returned by your API using deterministic field rules...');
     const data = await response.json();
+    const rawText = String(data.combined_text || data.raw_text || '');
+    if (!rawText.trim()) {
+      throw new Error('The API returned no readable invoice text. Check that OCR is installed and enabled on the backend for scanned PDFs.');
+    }
 
-    // Map backend schema to InvoiceFlow domain model
-    const invoice: Partial<Invoice> = {
-      supplierName: data.vendor_name || data.supplier_name || '',
-      supplierAddress: data.vendor_address || data.supplier_address || '',
-      supplierTaxId: data.vendor_tax_id || data.vat_number || data.ein || '',
-      invoiceNumber: data.invoice_number || data.invoice_id || '',
-      invoiceDate: data.invoice_date || '',
-      dueDate: data.due_date || '',
-      purchaseOrderNumber: data.po_number || data.purchase_order || '',
-      customerName: data.customer_name || data.bill_to || '',
-      currency: (data.currency as Currency) || 'USD',
-      subtotal: Number(data.subtotal) || 0,
-      discount: Number(data.discount) || 0,
-      taxAmount: Number(data.tax_amount || data.tax) || 0,
-      shippingAmount: Number(data.shipping_amount || data.shipping) || 0,
-      totalAmount: Number(data.total_amount || data.total) || 0,
-      paymentTerms: data.payment_terms || 'Net 30',
-      lineItems: (data.line_items || []).map((li: Record<string, unknown>, idx: number) => ({
-        id: `li_remote_${idx}`,
-        invoiceId: '',
-        description: String(li.description || `Item #${idx + 1}`),
-        quantity: Number(li.quantity) || 1,
-        unitPrice: Number(li.unit_price) || 0,
-        taxAmount: Number(li.tax_amount) || 0,
-        lineTotal: Number(li.line_total || (Number(li.quantity) || 1) * (Number(li.unit_price) || 0)),
-      })),
-    };
+    // The /extract endpoint returns extracted text, not structured fields.
+    // Parse only values present in that text; never invent invoice data.
+    const invoice = this.parseRawInvoiceText(rawText, file.name);
+    const warnings: string[] = [];
+    if (data.ocr_required || (Array.isArray(data.pages_requiring_ocr) && data.pages_requiring_ocr.length > 0)) {
+      warnings.push('One or more pages may still require OCR. Review extracted values against the PDF.');
+    }
+    if (rawText.trim().length < 50) warnings.push('Very little readable text was returned. Review the PDF manually.');
+    warnings.push('Fields are parsed with deterministic rules; verify results before accounting use.');
 
-    onProgress?.('completed', 100, 'Backend extraction completed successfully.');
-
-    return {
-      invoice,
-      rawExtractedText: data.raw_text || JSON.stringify(data, null, 2),
-      extractionMethod: 'open_invoice_engine_api',
-      isBackendResult: true,
-      warnings: data.warnings || [],
-    };
+    onProgress?.('completed', 100, 'API text extraction completed. Review extracted fields before use.');
+    return { invoice, rawExtractedText: rawText, extractionMethod: 'open_invoice_engine_api', isBackendResult: true, warnings };
   }
 
   /**
@@ -217,16 +196,15 @@ export class InvoiceExtractionService {
 
     // 2. Invoice Number
     const invMatch = text.match(/(?:invoice\s*(?:#|no\.?|num|number)|rechnung\s*(?:#|nr\.?)|inv\s*#?)\s*[:.\s]?\s*([a-z0-9\-_#/]{3,24})/i);
-    const invoiceNumber = invMatch ? invMatch[1].trim() : `INV-${Math.floor(100000 + Math.random() * 900000)}`;
+    const invoiceNumber = invMatch ? invMatch[1].trim() : '';
 
     // 3. Dates
-    const today = new Date().toISOString().split('T')[0];
-    const dateMatches = text.match(/\b(202[4-7][-/.](?:0[1-9]|1[0-2])[-/.](?:0[1-9]|[12]\d|3[01]))\b/);
-    const invoiceDate = dateMatches ? dateMatches[1].replace(/[/.]/g, '-') : today;
+    const dateMatches = text.match(/\\b(20\\d{2}[-/.](?:0[1-9]|1[0-2])[-/.](?:0[1-9]|[12]\\d|3[01]))\\b/);
+    const invoiceDate = dateMatches ? dateMatches[1].replace(/[/.]/g, '-') : '';
 
     // Due Date
     const dueDateMatches = text.match(/(?:due\s*date|payment\s*due|due|fälligkeit)\s*[:.\s]?\s*(202[4-7][-/.](?:0[1-9]|1[0-2])[-/.](?:0[1-9]|[12]\d|3[01]))/i);
-    const dueDate = dueDateMatches ? dueDateMatches[1].replace(/[/.]/g, '-') : invoiceDate;
+    const dueDate = dueDateMatches ? dueDateMatches[1].replace(/[/.]/g, '-') : '';
 
     // 4. Tax ID / VAT
     const vatMatch = text.match(/\b(?:vat\s*no\.?|tax\s*id|ein|steuernummer|ust-idnr\.?)\s*[:.\s]?\s*([A-Z0-9\-_]{6,20})/i);
@@ -252,15 +230,15 @@ export class InvoiceExtractionService {
     const totalAmount = findAmount([
       /(?:total\s*amount|total\s*due|balance\s*due|gesamtbetrag|amount\s*payable|grand\s*total)\s*[:.\s]?\s*[$€£]?\s*([\d,]+\.\d{2})/i,
       /(?:total)\s*[:.\s]?\s*[$€£]?\s*([\d,]+\.\d{2})/i,
-    ]) || 1250.00;
+    ]) || 0;
 
     const subtotal = findAmount([
       /(?:subtotal|sub-total|zwischensumme|net\s*amount)\s*[:.\s]?\s*[$€£]?\s*([\d,]+\.\d{2})/i,
-    ]) || (totalAmount > 0 ? Math.round(totalAmount * 0.9 * 100) / 100 : 0);
+    ]) || 0;
 
     const taxAmount = findAmount([
       /(?:tax|vat|mwst|sales\s*tax|gst)\s*[:.\s]?\s*[$€£]?\s*([\d,]+\.\d{2})/i,
-    ]) || Math.round((totalAmount - subtotal) * 100) / 100;
+    ]) || 0;
 
     const shippingAmount = findAmount([
       /(?:shipping|freight|handling|delivery|porto)\s*[:.\s]?\s*[$€£]?\s*([\d,]+\.\d{2})/i,
@@ -271,39 +249,26 @@ export class InvoiceExtractionService {
     ]) || 0;
 
     // Supplier name heuristic: First non-empty lines before "Invoice" or clean filename
-    let supplierName = 'Extracted Supplier Corp.';
-    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    let supplierName = '';
+    const lines = text.split('\\n').map(l => l.trim()).filter(Boolean);
     if (lines.length > 0) {
       const candidate = lines.find(l => l.length > 3 && l.length < 50 && !/page|invoice|rechnung|date|total/i.test(l));
       if (candidate) supplierName = candidate;
-    } else if (filename) {
-      const cleanName = filename.replace(/\.(pdf|png|jpe?g)$/i, '').replace(/[-_]/g, ' ');
-      supplierName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
     }
 
-    // Default line item
-    const lineItems: InvoiceLineItem[] = [
-      {
-        id: `li_gen_${Date.now()}_1`,
-        invoiceId: '',
-        description: 'Standard Professional / Supply Services',
-        quantity: 1,
-        unitPrice: subtotal,
-        taxAmount: taxAmount,
-        lineTotal: subtotal,
-      },
-    ];
+    // No itemized rows are fabricated when the source text does not expose them.
+    const lineItems: InvoiceLineItem[] = [];
 
     return {
       supplierName,
-      supplierAddress: '100 Business Parkway, Suite 400',
+      supplierAddress: '',
       supplierTaxId,
       invoiceNumber,
       invoiceDate,
       dueDate,
       purchaseOrderNumber,
-      customerName: 'Customer Account',
-      paymentTerms: 'Net 30',
+      customerName: '',
+      paymentTerms: '',
       currency,
       subtotal,
       discount,
