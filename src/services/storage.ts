@@ -11,7 +11,7 @@ const STORAGE_KEYS = {
 };
 
 const DEFAULT_CONFIG: BackendConfig = {
-  baseUrl: 'http://localhost:8000/api/v1',
+  baseUrl: 'http://localhost:8000',
   apiKey: '',
   timeoutMs: 15000,
   useLiveBackend: false, // Default to transparent in-browser demo/fallback mode
