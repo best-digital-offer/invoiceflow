@@ -417,13 +417,6 @@ class StorageService {
     void supabaseData.upsertProfile(updated).catch(error => console.warn('Profile cloud sync failed:', error));
   }
 
-  verifyCurrentUserEmail() {
-    const current = this.getCurrentUser();
-    if (current) {
-      this.updateUserProfile({ isEmailVerified: true });
-    }
-  }
-
   // --- Invoices (Isolated per User) ---
   private getInvoicesKey(userId: string): string {
     return `${STORAGE_KEYS.INVOICES_PREFIX}${userId}`;
