@@ -130,9 +130,13 @@ export class InvoiceExtractionService {
       rawText = '';
     }
 
+    if (!rawText.trim()) {
+      throw new Error('No selectable text was found in this PDF. Scanned PDFs require OCR, which is not enabled yet. Use a text-based PDF or wait until OCR support is added.');
+    }
+
     onProgress?.('parsing_fields', 70, 'Running deterministic pattern recognition rules...');
 
-    // Parse deterministic patterns
+    // Parse only values present in the extracted source text.
     const parsed = this.parseRawInvoiceText(rawText, file.name);
 
     onProgress?.('validating', 90, 'Running mathematical and logical validation engine...');
@@ -207,7 +211,7 @@ export class InvoiceExtractionService {
     const invoiceDate = dateMatches ? dateMatches[1].replace(/[/.]/g, '-') : '';
 
     // Due Date
-    const dueDateMatches = text.match(/(?:due\s*date|payment\s*due|due|fälligkeit)\s*[:.\s]?\s*(202[4-7][-/.](?:0[1-9]|1[0-2])[-/.](?:0[1-9]|[12]\d|3[01]))/i);
+    const dueDateMatches = text.match(/(?:due\s*date|payment\s*due|due|fälligkeit)\s*[:.\s]?\s*(20\d{2}[-/.](?:0[1-9]|1[0-2])[-/.](?:0[1-9]|[12]\d|3[01]))/i);
     const dueDate = dueDateMatches ? dueDateMatches[1].replace(/[/.]/g, '-') : '';
 
     // 4. Tax ID / VAT
