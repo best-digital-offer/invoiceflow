@@ -51,7 +51,6 @@ export const supabaseData = {
         full_name: user.name,
         company_name: user.companyName,
         role: user.role,
-        plan: user.plan,
         updated_at: new Date().toISOString(),
       }),
     });
