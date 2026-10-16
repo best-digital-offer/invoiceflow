@@ -66,7 +66,7 @@ export class InvoiceExtractionService {
       headers['X-API-Key'] = config.apiKey;
     }
 
-    const endpoint = `${config.baseUrl.replace(/\\/+$/, '')}/extract`;
+    const endpoint = `${config.baseUrl.replace(/\/+$/, '')}/extract`;
     let response: Response;
     try {
       response = await fetch(endpoint, { method: 'POST', headers, body: formData, signal: controller.signal });
@@ -199,7 +199,7 @@ export class InvoiceExtractionService {
     const invoiceNumber = invMatch ? invMatch[1].trim() : '';
 
     // 3. Dates
-    const dateMatches = text.match(/\\b(20\\d{2}[-/.](?:0[1-9]|1[0-2])[-/.](?:0[1-9]|[12]\\d|3[01]))\\b/);
+    const dateMatches = text.match(/\b(20\d{2}[-/.](?:0[1-9]|1[0-2])[-/.](?:0[1-9]|[12]\d|3[01]))\b/);
     const invoiceDate = dateMatches ? dateMatches[1].replace(/[/.]/g, '-') : '';
 
     // Due Date
@@ -250,7 +250,7 @@ export class InvoiceExtractionService {
 
     // Supplier name heuristic: First non-empty lines before "Invoice" or clean filename
     let supplierName = '';
-    const lines = text.split('\\n').map(l => l.trim()).filter(Boolean);
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
     if (lines.length > 0) {
       const candidate = lines.find(l => l.length > 3 && l.length < 50 && !/page|invoice|rechnung|date|total/i.test(l));
       if (candidate) supplierName = candidate;
