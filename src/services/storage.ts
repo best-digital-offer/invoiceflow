@@ -427,6 +427,37 @@ class StorageService {
     return `${STORAGE_KEYS.INVOICES_PREFIX}${userId}`;
   }
 
+  private persistInvoicesSafely(userId: string, invoices: Invoice[]): Invoice[] {
+    const key = this.getInvoicesKey(userId);
+    try {
+      localStorage.setItem(key, JSON.stringify(invoices));
+      return invoices;
+    } catch (error) {
+      const isQuotaError =
+        error instanceof DOMException &&
+        (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED');
+      if (!isQuotaError) throw error;
+
+      // Invoice metadata should still be saveable when browser quota cannot fit embedded PDF data.
+      const compactInvoices = invoices.map((invoice) => {
+        if (!invoice.fileDataUrl) return invoice;
+        const { fileDataUrl: _fileDataUrl, ...withoutPreview } = invoice;
+        const previewNotice = 'PDF preview was not retained because browser storage is full. Re-upload the PDF to view it again.';
+        return {
+          ...withoutPreview,
+          notes: [withoutPreview.notes, previewNotice].filter(Boolean).join(' | '),
+        };
+      });
+
+      try {
+        localStorage.setItem(key, JSON.stringify(compactInvoices));
+        return compactInvoices;
+      } catch {
+        throw new Error('Browser storage is full. Export or remove older invoices before saving more records.');
+      }
+    }
+  }
+
   getInvoices(userId?: string): Invoice[] {
     const uid = userId || this.getCurrentUser()?.id;
     if (!uid) return [];
@@ -488,9 +519,9 @@ class StorageService {
       next = [updatedInvoice, ...existing];
     }
 
-    localStorage.setItem(this.getInvoicesKey(userId), JSON.stringify(next));
+    const persisted = this.persistInvoicesSafely(userId, next);
     this.notify();
-    return updatedInvoice;
+    return persisted.find(inv => inv.id === updatedInvoice.id) || updatedInvoice;
   }
 
   saveBatchInvoices(invoices: Invoice[]): Invoice[] {
@@ -517,7 +548,8 @@ class StorageService {
     }
 
     const merged = [...saved, ...existing.filter(e => !saved.some(s => s.id === e.id))];
-    localStorage.setItem(this.getInvoicesKey(userId), JSON.stringify(merged));
+    const persisted = this.persistInvoicesSafely(userId, merged);
+    const persistedBatch = saved.map(invoice => persisted.find(item => item.id === invoice.id) || invoice);
     
     this.recordUsage({
       operation: 'batch_upload',
@@ -527,7 +559,7 @@ class StorageService {
     });
 
     this.notify();
-    return saved;
+    return persistedBatch;
   }
 
   getInvoiceById(id: string): Invoice | undefined {
