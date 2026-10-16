@@ -575,9 +575,14 @@ class StorageService {
       const saved = JSON.parse(raw) as Partial<BackendConfig>;
       // Migrate the original localhost/demo default to the hosted first-party API.
       // Users can still switch back to the browser-only demo from the connector modal.
-      if (saved.baseUrl === 'http://localhost:8000' && saved.useLiveBackend === false) {
+      if (
+        saved.baseUrl === 'http://localhost:8000' &&
+        saved.useLiveBackend === false &&
+        localStorage.getItem('invoiceflow_api_default_migrated') !== 'true'
+      ) {
         const migrated = { ...DEFAULT_CONFIG, ...saved, baseUrl: DEFAULT_CONFIG.baseUrl, useLiveBackend: true };
         localStorage.setItem(STORAGE_KEYS.BACKEND_CONFIG, JSON.stringify(migrated));
+        localStorage.setItem('invoiceflow_api_default_migrated', 'true');
         return migrated;
       }
       return { ...DEFAULT_CONFIG, ...saved };
