@@ -47,7 +47,13 @@ export default function App() {
   const hydrateCloudData = async (user: User) => {
     if (!isSupabaseUserId(user.id)) return;
     try {
-      await supabaseData.upsertProfile(user);
+      const remoteProfile = await supabaseData.fetchProfile(user.id);
+      const effectiveUser: User = remoteProfile
+        ? { ...user, ...remoteProfile, id: user.id }
+        : user;
+      storageService.setCurrentUser(effectiveUser);
+      if (!remoteProfile) await supabaseData.upsertProfile(effectiveUser);
+
       const localInvoices = storageService.getInvoices(user.id);
       const localRuns = storageService.getReconciliations(user.id);
       const localUsage = storageService.getUsageRecords(user.id);
