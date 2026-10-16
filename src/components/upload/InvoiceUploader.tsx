@@ -56,30 +56,29 @@ export const InvoiceUploader: React.FC<InvoiceUploaderProps> = ({
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
 
-      // Validate file type (PDF or common image formats)
+      // This endpoint currently extracts selectable text from PDFs only.
       const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-      const isImg = file.type.startsWith('image/') || /\.(png|jpe?g)$/i.test(file.name);
 
-      if (!isPdf && !isImg) {
+      if (!isPdf) {
         newTasks.push({
           id: `task_${Date.now()}_${i}`,
           file,
           stage: 'failed',
           progress: 100,
-          message: 'Unsupported format. Only PDF and scanned invoice images (PNG/JPEG) are supported.',
-          error: 'Invalid file format',
+          message: 'Only PDF files are supported. Image uploads and scanned-PDF OCR are not available yet.',
+          error: 'Unsupported file format',
         });
         continue;
       }
 
-      // Validate size (max 25MB)
-      if (file.size > 25 * 1024 * 1024) {
+      // Keep the client limit aligned with the Vercel function's 4 MB limit.
+      if (file.size > 4 * 1024 * 1024) {
         newTasks.push({
           id: `task_${Date.now()}_${i}`,
           file,
           stage: 'failed',
           progress: 100,
-          message: 'File exceeds 25MB limit. Please compress or split large PDF packages.',
+          message: 'PDF exceeds the current 4 MB limit for Vercel extraction. Compress the PDF or split it into smaller files.',
           error: 'File size exceeded',
         });
         continue;
@@ -180,7 +179,7 @@ export const InvoiceUploader: React.FC<InvoiceUploaderProps> = ({
         updateTask(task.id, {
           stage: 'completed',
           progress: 100,
-          message: 'Extraction completed and verified.',
+          message: 'Text extraction completed. Review the fields and validation results before using this invoice.',
           extractedInvoice: saved,
         });
 
@@ -268,7 +267,7 @@ export const InvoiceUploader: React.FC<InvoiceUploaderProps> = ({
             </span>
             <p className="text-[11px] opacity-80 mt-0.5">
               {backendConfig.useLiveBackend
-                ? `Invoices will be transmitted to open-invoice-engine at ${backendConfig.baseUrl}`
+                ? `Invoice text will be sent to the configured Vercel extraction endpoint at ${backendConfig.baseUrl}`
                 : 'Zero-cost client-side parsing. PDF text streams are extracted in-browser with mathematical rule verification. No data leaves your machine.'}
             </p>
           </div>
@@ -302,7 +301,7 @@ export const InvoiceUploader: React.FC<InvoiceUploaderProps> = ({
           ref={fileInputRef}
           type="file"
           multiple
-          accept=".pdf,application/pdf,image/png,image/jpeg"
+          accept=".pdf,application/pdf"
           className="hidden"
           onChange={(e) => handleFiles(e.target.files)}
         />
@@ -315,7 +314,7 @@ export const InvoiceUploader: React.FC<InvoiceUploaderProps> = ({
           Drop your PDF invoices here, or <span className="text-blue-600 underline">browse files</span>
         </h3>
         <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
-          Upload single files or multi-invoice batches. Scanned and digitally generated PDF formats supported up to 25MB each.
+          Upload text-based PDF invoices up to 4 MB each. Scanned PDFs requiring OCR are not supported yet.
         </p>
 
         <div className="mt-4 flex flex-wrap justify-center items-center gap-4 text-[11px] text-slate-400">
