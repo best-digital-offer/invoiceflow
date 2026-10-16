@@ -131,7 +131,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         </div>
 
         {/* Demo User Fast-Track Button */}
-        <div className="p-6 pb-2">
+        {(mode === 'login' || mode === 'signup') && <div className="p-6 pb-2">
           <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-blue-900">
@@ -151,16 +151,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
-        </div>
+        </div>}
 
-        <div className="relative px-6 py-2">
+        {(mode === 'login' || mode === 'signup') && <div className="relative px-6 py-2">
           <div className="absolute inset-0 flex items-center px-6">
             <div className="w-full border-t border-slate-200" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
             <span className="bg-white px-2 text-slate-400 font-medium">Or continue with email</span>
           </div>
-        </div>
+        </div>}
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 pt-2 space-y-4">
@@ -347,10 +347,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <p>Password reset link verified. Choose a new password to continue.</p>
             )}
 
-            {mode === 'forgot_password' && (
+            {(mode === 'forgot_password' || mode === 'update_password') && (
               <button
                 type="button"
-                onClick={() => { setMode('login'); setError(null); setNotice(null); }}
+                onClick={() => { setMode('login'); setError(null); setNotice(null); setPassword(''); }}
                 className="text-blue-600 font-semibold hover:underline"
               >
                 Back to log in
