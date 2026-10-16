@@ -575,7 +575,7 @@ class StorageService {
       const saved = JSON.parse(raw) as Partial<BackendConfig>;
       // Migrate older localhost or external-host configurations to the same-origin Vercel API.
       if (
-        (saved.baseUrl === 'http://localhost:8000' || saved.baseUrl.includes('onrender.com')) &&
+        (saved.baseUrl === 'http://localhost:8000' || saved.baseUrl?.includes('onrender.com')) &&
         localStorage.getItem('invoiceflow_api_default_migrated') !== 'true'
       ) {
         const migrated = { ...DEFAULT_CONFIG, ...saved, baseUrl: DEFAULT_CONFIG.baseUrl, apiKey: '', useLiveBackend: true };
